@@ -11,6 +11,10 @@ on:
         description: 'build number'
         required: true
         type: string
+      run_tag:
+        description: 'github run tag'
+        required: true
+        type: string
     secrets:
       gcp_api_token:
         required: true
@@ -26,6 +30,7 @@ jobs:
       gcp_project_name: eng-4ks
       gcp_registry: us-east4-docker.pkg.dev
       build_number: ${{ inputs.build_number }}
+      run_tag: ${{ inputs.run_tag }}
   web:
     uses: ./.github/workflows/build-container.yaml
     secrets:
@@ -36,3 +41,4 @@ jobs:
       gcp_project_name: eng-4ks
       gcp_registry: us-east4-docker.pkg.dev
       build_number: ${{ inputs.build_number }}
+      run_tag: ${{ inputs.run_tag }}

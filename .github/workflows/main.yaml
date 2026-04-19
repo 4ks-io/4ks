@@ -9,7 +9,8 @@ jobs:
     uses: ./.github/workflows/build-publish.yaml
     with:
       environment: dev
-      build_number: ${{ github.run_id }}.${{ github.run_number }}.${{ github.run_attempt }}
+      build_number: ${{ github.sha }}
+      run_tag: ${{ github.run_id }}.${{ github.run_number }}.${{ github.run_attempt }}
     secrets:
       gcp_api_token: ${{ secrets.GOOGLE_CREDENTIALS_ENG }}
 
@@ -22,7 +23,7 @@ jobs:
   #     typesense_api_key: ${{ secrets.TYPESENSE_API_KEY_DEV }}
   #   with:
   #     environment: dev
-  #     build_number: ${{ github.run_id }}.${{ github.run_number }}.${{ github.run_attempt }}
+  #     build_number: ${{ github.sha }}
 
   # review:
   #   needs: dev
@@ -40,4 +41,4 @@ jobs:
       auth0_client_secret: ${{ secrets.AUTH0_CLIENT_SECRET_PRD }}
     with:
       environment: prd
-      build_number: ${{ github.run_id }}.${{ github.run_number }}.${{ github.run_attempt }}
+      build_number: ${{ github.sha }}

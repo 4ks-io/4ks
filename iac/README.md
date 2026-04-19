@@ -1,1 +1,154 @@
-export GOOGLE_APPLICATION_CREDENTIALS=/home/ndelorme/.prd-4ks-869398883338.json
+# 4ks Infrastructure
+
+The infrastructure is split into three deployment tiers plus one shared
+engineering project:
+
+1. **Core** (`iac/core`)
+   Enables project-level GCP APIs and permissions for each runtime project.
+   Workspaces are selected by Terraform Cloud tags: `core`, `us-east`.
+
+2. **Base** (`iac/base`)
+   Creates the durable environment resources for each runtime project, such as
+   DNS, buckets, static assets, secrets, and service wiring. Workspaces are
+   selected by Terraform Cloud tags: `base`, `us-east`.
+
+3. **App** (`iac/app`)
+   Deploys the application runtime resources and continuously rolls Cloud Run
+   services to image tags produced by CI. Workspaces are selected by Terraform
+   Cloud tags: `app`, `us-east`.
+
+4. **Engineering** (`iac/eng`)
+   Owns shared build infrastructure in `eng-4ks`, including the Artifact
+   Registry Docker repositories used by every environment:
+
+   - `us-east4-docker.pkg.dev/eng-4ks/api/app`
+   - `us-east4-docker.pkg.dev/eng-4ks/web/app`
+
+The application projects (`dev-4ks`, `prd-4ks`) pull images from the shared
+`eng-4ks` registries. Production does not own its own Docker registry.
+
+## Local Terraform Setup
+
+Install Terraform `>= 1.6.4`, then authenticate to Terraform Cloud and GCP.
+
+```sh
+terraform login
+gcloud auth application-default login
+```
+
+Alternatively, point Terraform at a service account key that has permission to
+manage the target project:
+
+```sh
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+```
+
+Use the service account for the project you are applying. For example, use
+`eng-4ks` credentials for `iac/eng`, not `prd-4ks` credentials.
+
+## Rebuild Missing Docker Registries
+
+If the Docker registries have been deleted, restore them from `iac/eng`. The
+registries are `google_artifact_registry_repository.api` and
+`google_artifact_registry_repository.web` in the fixed Terraform Cloud workspace
+`eng-us-east`.
+
+```sh
+cd iac/eng
+terraform init
+terraform plan
+terraform apply
+```
+
+Expected create targets:
+
+```text
+google_artifact_registry_repository.api
+google_artifact_registry_repository.web
+```
+
+After the repositories exist, publish fresh images. Prefer GitHub Actions:
+
+```sh
+# Rerun a failed `main cd` run after the registries have been recreated.
+gh run rerun <run-id>
+```
+
+If there is no failed run to rerun, push a new commit to `main`. The `main cd`
+workflow runs:
+
+1. `build-publish.yaml`, which builds and pushes `api` and `web` images to
+   `us-east4-docker.pkg.dev/eng-4ks/{api,web}/app`.
+2. `run-terraform.yaml`, which applies `iac/app` to the production workspace
+   `app-prd-us-east` with the new image build number.
+
+The reusable build workflows (`build-publish.yaml`, `build-container.yaml`, and
+`build-container-web.yaml`) are `workflow_call` only and are not directly
+runnable from the GitHub Actions UI.
+
+To publish images locally instead:
+
+```sh
+BUILD_NUMBER="$(date +%Y%m%d%H%M%S)"
+gcloud auth configure-docker us-east4-docker.pkg.dev
+
+./apps/web/package_json.sh
+
+docker buildx build . \
+  --file ./apps/api/Dockerfile \
+  --build-arg "VERSION=${BUILD_NUMBER}" \
+  --tag "us-east4-docker.pkg.dev/eng-4ks/api/app:${BUILD_NUMBER}" \
+  --tag "us-east4-docker.pkg.dev/eng-4ks/api/app:latest" \
+  --push
+
+docker buildx build . \
+  --file ./apps/web/Dockerfile \
+  --build-arg "VERSION=${BUILD_NUMBER}" \
+  --tag "us-east4-docker.pkg.dev/eng-4ks/web/app:${BUILD_NUMBER}" \
+  --tag "us-east4-docker.pkg.dev/eng-4ks/web/app:latest" \
+  --push
+```
+
+If you publish images locally, apply `iac/app` with the same `BUILD_NUMBER`
+rather than relying on `latest`.
+
+## Apply Order
+
+For a full environment rebuild, apply the tiers in dependency order:
+
+```sh
+cd iac/core
+TF_WORKSPACE=core-prd-us-east TF_VAR_stage=prd terraform init
+TF_WORKSPACE=core-prd-us-east TF_VAR_stage=prd terraform plan
+TF_WORKSPACE=core-prd-us-east TF_VAR_stage=prd terraform apply
+
+cd ../base
+TF_WORKSPACE=base-prd-us-east terraform init
+TF_WORKSPACE=base-prd-us-east terraform plan
+TF_WORKSPACE=base-prd-us-east terraform apply
+
+cd ../eng
+terraform init
+terraform plan
+terraform apply
+
+cd ../app
+TF_WORKSPACE=app-prd-us-east terraform init
+TF_WORKSPACE=app-prd-us-east terraform plan \
+  -var="api_build_number=${BUILD_NUMBER}" \
+  -var="web_build_number=${BUILD_NUMBER}" \
+  -var="fetcher_build_number=${BUILD_NUMBER}" \
+  -var='typesense_api_key=...' \
+  -var='auth0_client_secret=...' \
+  -var='auth0_secret=...'
+TF_WORKSPACE=app-prd-us-east terraform apply \
+  -var="api_build_number=${BUILD_NUMBER}" \
+  -var="web_build_number=${BUILD_NUMBER}" \
+  -var="fetcher_build_number=${BUILD_NUMBER}" \
+  -var='typesense_api_key=...' \
+  -var='auth0_client_secret=...' \
+  -var='auth0_secret=...'
+```
+
+Prefer the GitHub Actions CD path for `iac/app` when possible, because it passes
+the exact image build number generated by the container build.
