@@ -8,7 +8,7 @@
     "clean": "rimraf ./docs/* && rimraf ./src/* && rimraf ./dist",
     "build": "tsc --project ./tsconfig.json && echo",
     "codegen": "npx openapi-typescript-codegen --input ./docs/swagger.json --output ./src --name ApiClient",
-    "gogen": "swag init --parseDependency --parseInternal --parseDepth 1 -d ../../../apps/api/ -o ./docs",
+    "gogen": "go tool swag init --parseDependency --parseInternal --parseDepth 1 -d ../../../apps/api/ -o ./docs",
     "fetch-n-build": "pnpm run gogen && pnpm run codegen && pnpm run build"
   },
   "devDependencies": {

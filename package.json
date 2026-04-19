@@ -11,13 +11,18 @@
     "lint:media-upload": "revive apps/media-upload/...",
     "lint:web": "eslint apps/web",
     "lint": "npm-run-all lint:api lint:media-upload lint:web",
-    "swag:api": "swag init --parseDependency --parseInternal --parseDepth 1 -d apps/api/ -o apps/api/docs",
+    "swag:api": "go tool swag init --parseDependency --parseInternal --parseDepth 1 -d apps/api/ -o apps/api/docs",
     "swag:web": "pnpm --filter @4ks/api-fetch fetch-n-build",
     "swag": "pnpm run swag:api && pnpm run swag:web",
     "test-fetcher": "pnpm --filter @4ks/fetcher test",
     "test": "npm-run-all test-fetcher"
   },
   "private": true,
+  "pnpm": {
+    "overrides": {
+      "axios": "1.15.0"
+    }
+  },
   "devDependencies": {
     "@types/node": "25.6.0",
     "eslint": "^8.41.0",
