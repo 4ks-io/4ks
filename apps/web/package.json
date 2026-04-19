@@ -21,7 +21,7 @@
     "@trpc/react-query": "^10.43.2",
     "@trpc/server": "^10.43.2",
     "deep-diff": "^1.0.2",
-    "next": "14.2.4",
+    "next": "14.2.35",
     "react": "^18",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18",
@@ -40,7 +40,7 @@
     "@types/react-beautiful-dnd": "^13.1.6",
     "@types/react-dom": "^18",
     "eslint": "^8",
-    "eslint-config-next": "14.0.0",
+    "eslint-config-next": "14.2.35",
     "typescript": "^5.1.3"
   }
 }

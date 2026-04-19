@@ -10,7 +10,7 @@
     "test": "node src/test.js"
   },
   "dependencies": {
-    "sha.js": "2.4.11"
+    "sha.js": "2.4.12"
   },
   "author": "",
   "license": "ISC"
