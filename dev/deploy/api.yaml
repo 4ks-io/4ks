@@ -69,7 +69,7 @@ spec:
             - name: STATIC_MEDIA_FALLBACK_PREFIX
               value: static/fallback/f
             - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /code/google-app-creds.json
+              value: /var/secrets/google/google-app-creds.json
             - name: TYPESENSE_URL
               value: http://typesense.default.svc.cluster.local:8108
             - name: TYPESENSE_API_KEY
@@ -86,7 +86,15 @@ spec:
               value: local-dev-sa@sbx-4ks.iam.gserviceaccount.com
           ports:
             - containerPort: 5000
+          volumeMounts:
+            - name: google-app-creds
+              mountPath: /var/secrets/google
+              readOnly: true
           readinessProbe:
             httpGet:
               port: 5000
               path: '/api/ready'
+      volumes:
+        - name: google-app-creds
+          secret:
+            secretName: api-google-app-creds

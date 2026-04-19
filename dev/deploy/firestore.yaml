@@ -39,6 +39,15 @@ spec:
             #   value: '8200'
           ports:
             - containerPort: 8200
+          startupProbe:
+            tcpSocket:
+              port: 8200
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            tcpSocket:
+              port: 8200
+            periodSeconds: 5
           # livenessProbe:
           #   httpGet:
           #     path: /

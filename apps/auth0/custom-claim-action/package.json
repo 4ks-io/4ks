@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": "^18"
+    "node": ">=25.9.0"
   },
   "scripts": {
     "test": "node src/test.js"

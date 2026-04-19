@@ -1,6 +1,6 @@
 module 4ks.io/fetcher
 
-go 1.20
+go 1.26
 
 require (
 	github.com/GoogleCloudPlatform/functions-framework-go v1.8.0

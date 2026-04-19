@@ -1,5 +1,5 @@
 # # stage: deps (base)
-# FROM node:20-alpine3.17 as deps
+# FROM node:25.9.0-alpine AS deps
 # RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 # RUN npm install -g pnpm
 
@@ -10,7 +10,7 @@
 #   # output -> /root/.local/share/pnpm/store/v3
 
 # stage: build
-FROM node:20-alpine3.17 as build
+FROM node:25.9.0-alpine AS build
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 RUN npm install -g pnpm
 
@@ -37,7 +37,7 @@ RUN npx next build
 # CMD [ "npm", "run", "start" ]
 
 # runtime
-FROM node:20-alpine3.17
+FROM node:25.9.0-alpine
 RUN mkdir /home/appuser && chmod 777 /home/appuser
 USER appuser
 

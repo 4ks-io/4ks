@@ -6,7 +6,7 @@
 
 ## Instructions
 
-1. `cd ./app/4ks-nginx/ssl`.
+1. `cd dev/apps/nginx/ssl`.
 
 2. Delete current certs as these will be re-generated
 
@@ -27,7 +27,7 @@ $ docker run --rm -i -t -v $PWD/out/openssl.cnf:/etc/ssl/openssl.cnf -v $PWD/out
 ```
    $ cd /root/out
    $ openssl genrsa -out private.key 3072
-   $ openssl req -new -x509 -key private.key -sha256 -out certificate.pem -days 365
+   $ openssl req -new -x509 -key private.key -sha256 -out certificate.pem -days 3650
    $ openssl x509 -in certificate.pem -text -noout
 
 ```

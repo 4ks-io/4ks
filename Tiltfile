@@ -22,11 +22,28 @@ k8s_yaml([
 ])
 
 # API
+google_app_creds_path = 'dev/secrets/sbx-4ks-google-app-creds.json'
+local(
+    'if [ ! -f {path} ]; then echo "missing {path}; add the local Google service account JSON before starting api"; exit 1; fi'.format(path=google_app_creds_path),
+    quiet=True
+)
+google_app_creds = str(read_file(google_app_creds_path))
+google_app_creds_yaml = '\n'.join(['    ' + line for line in google_app_creds.split('\n')])
+k8s_yaml(blob("""
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-google-app-creds
+stringData:
+  google-app-creds.json: |
+{google_app_creds_yaml}
+""".format(google_app_creds_yaml=google_app_creds_yaml)))
+k8s_resource(objects=['api-google-app-creds'], new_name='api-google-app-creds', labels=['backend'])
 k8s_resource(
     workload='api',
     port_forwards='0.0.0.0:5734:5000',
     labels=['backend'],
-    resource_deps=['pubsub']
+    resource_deps=['api-google-app-creds', 'pubsub', 'firestore', 'typesense']
 )
 docker_build(
     '4ks-api',
@@ -37,8 +54,7 @@ docker_build(
         'go.mod',
         'go.sum',
         'libs/go',
-        'libs/reserved-words',
-        'dev/secrets/sbx-4ks-google-app-creds.json'
+        'libs/reserved-words'
     ],
     live_update=[
         sync('apps/api/', '/code/apps/api'),

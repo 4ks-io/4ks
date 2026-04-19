@@ -218,7 +218,7 @@ func main() {
 	var imageURL = utils.GetEnvVarOrPanic("MEDIA_IMAGE_URL")
 
 	// reserved words
-	reservedWordsFile := utils.GetStrEnvVar("AUDITLAB_RESERVED_WORDS_FILE", "./reserved-words")
+	reservedWordsFile := utils.GetStrEnvVar("RESERVED_WORDS_FILE", "./reserved-words")
 	reservedWords, err := ReadWordsFromFile(reservedWordsFile)
 	if err != nil {
 		panic(err)

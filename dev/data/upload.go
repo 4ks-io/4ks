@@ -5,6 +5,7 @@ import (
 	"4ks/libs/go/models"
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -152,6 +153,10 @@ func main() {
 
 	client := http.Client{
 		Timeout: 30 * time.Second,
+		// trust insecure certs
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
 	}
 
 	file, err := os.Open(filename)

@@ -51,3 +51,6 @@ re.sh
 **/secrets/*
 
 ignore
+.agent/
+.codex/
+.claude/
