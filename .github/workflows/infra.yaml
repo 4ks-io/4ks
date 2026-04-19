@@ -18,10 +18,10 @@ jobs:
         working-directory: iac/app
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v4
         with:
           # terraform_version: 0.13.0:
           cli_config_credentials_token: ${{ secrets.DEV_TF_SVC_ACCOUNT }}

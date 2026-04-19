@@ -2,6 +2,12 @@ name: review
 
 on:
   workflow_call:
+    inputs:
+      environment:
+        description: 'dev | tst | prd'
+        required: false
+        type: string
+        default: dev
 
 jobs:
   build:
@@ -13,6 +19,6 @@ jobs:
         working-directory: iac/app
     steps:
       - name: Manual Review
-        uses: actions/github-script@v6
+        uses: actions/github-script@v9
         with:
-          script: exit 1
+          script: core.setFailed('Manual review required')

@@ -77,7 +77,7 @@ resource "google_cloudfunctions2_function" "media_upload" {
   description = "creates image upload post validation"
 
   build_config {
-    runtime     = "go122"
+    runtime     = "go126"
     entry_point = "UploadImage"
     source {
       storage_source {

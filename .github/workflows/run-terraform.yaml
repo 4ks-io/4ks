@@ -33,30 +33,35 @@ jobs:
         working-directory: iac/app
     steps:
       # checkout
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # tf setup
       - name: verbose
         run: |
           echo "app-${{ inputs.environment }}-us-east"
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v4
         with:
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      # - name: Terraform Format
-      #   id: fmt
-      #   run: terraform fmt -check
+          cli_config_credentials_token: ${{ secrets.tf_api_token }}
+      - name: Terraform Format
+        id: fmt
+        if: github.event_name == 'pull_request'
+        run: terraform fmt -check
       - name: Terraform Init
         id: init
         run: terraform init
         env:
           TF_WORKSPACE: app-${{ inputs.environment }}-us-east
+      - name: Terraform Validate
+        id: validate
+        if: github.event_name == 'pull_request'
+        run: terraform validate -no-color
       - name: Terraform Plan
         id: plan
         if: github.event_name == 'pull_request'
         run: terraform plan -no-color -input=false
         continue-on-error: true
       - name: Update Pull Request
-        uses: actions/github-script@v6
+        uses: actions/github-script@v9
         if: github.event_name == 'pull_request'
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
