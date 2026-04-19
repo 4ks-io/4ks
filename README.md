@@ -35,10 +35,31 @@
    `pnpm install`
 1. swaggo/swag is used to regenerate the swagger definition in apps/api/docs and the contents of libs/ts/api-fetch \
    `pnpm run swag`
-1. Create the k8s cluster: \
-   `eg. ./scripts/kind-with-registry.sh`
-1. Start the local development environment: \
-   `tilt up`
+1. Create the local kind cluster and registry: \
+   `make up`
+1. Start the Tilt-managed application resources on the existing cluster: \
+   `make start`
+
+## Local lifecycle
+
+- `make up` creates the local Kubernetes infrastructure: the default kind
+  cluster and the local registry container.
+- `make down` is the destructive reset. It removes Tilt-managed app resources,
+  terminates the running Tilt process, deletes the kind cluster, and removes the
+  local registry container. Persistent volumes inside the kind cluster are lost.
+- `make start` starts only the Tilt-managed application resources on an existing
+  cluster. Use this for normal development after `make up`. If the local kind
+  control-plane or registry container is not running, it exits with a `make up`
+  instruction. If Tilt is already running on the default port, `make start`
+  attaches by streaming `tilt logs -f` instead of trying to launch a second Tilt
+  server. It prints the current Tilt resource status before attaching so failed
+  pods are visible.
+- `make stop` stops only the Tilt-managed application resources, then
+  terminates the running Tilt process. It leaves the kind cluster, registry
+  container, and persistent volumes intact.
+- `make restart` runs `tilt down` followed by `tilt up --stream=true`. Use this
+  when an existing Tilt session is reachable but resources are stale, stuck, or
+  port-forwards keep reconnecting.
 
 ## Serving
 

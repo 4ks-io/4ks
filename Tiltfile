@@ -83,8 +83,8 @@ docker_build(
     live_update=[
         sync('apps/fetcher/', '/code'),
         run(
-            'go mod tidy',
-            trigger=['apps/fetcher/']
+            'go mod download && go mod tidy',
+            trigger=['apps/fetcher/go.mod', 'apps/fetcher/go.sum']
         )
     ]
 )
