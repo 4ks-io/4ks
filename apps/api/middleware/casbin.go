@@ -4,6 +4,8 @@ import (
 	"4ks/libs/go/models"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
@@ -20,7 +22,7 @@ var (
 
 func init() {
 	var err error
-	en, err = casbin.NewEnforcer(model, policy, VERBOSE)
+	en, err = casbin.NewEnforcer(casbinConfigPath(model), casbinConfigPath(policy), VERBOSE)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create enforcer")
 		os.Exit(1)
@@ -32,6 +34,19 @@ const (
 	model  = "apps/api/casbin/model.conf"
 	policy = "apps/api/casbin/policy.csv"
 )
+
+func casbinConfigPath(path string) string {
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		return path
+	}
+
+	return filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", "casbin", filepath.Base(path)))
+}
 
 // Enforce RBAC
 func Enforce(sub string, obj string, act string) (bool, error) {

@@ -5,7 +5,7 @@ KIND_CONTROL_PLANE := $(KIND_CLUSTER)-control-plane
 KIND_REGISTRY := kind-registry
 TILT_PORT ?= 10350
 
-.PHONY: up down start stop restart status logs swagger swag local tidy lint security check
+.PHONY: up down start stop restart status logs swagger swag local tidy lint security check test-web test-fetcher test-api test
 
 
 start:
@@ -115,3 +115,14 @@ security:
 	done
 
 check: tidy lint security
+
+test-web:
+	cd apps/web && pnpm exec tsx --test src/**/*.test.ts
+
+test-fetcher:
+	cd apps/fetcher && API_FETCHER_PSK=01234567890123456789012345678901 API_ENDPOINT_URL=https://api.4ks.io/api/_fetcher/recipes PUBSUB_PROJECT_ID=test PUBSUB_TOPIC_ID=test go test ./...
+
+test-api:
+	cd apps/api && AUTH0_DOMAIN=example.auth0.com AUTH0_AUDIENCE=test go test ./...
+
+test: test-web test-fetcher test-api

@@ -1,12 +1,14 @@
 package fetcher
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html"
-	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
@@ -14,51 +16,89 @@ import (
 )
 
 var (
-	errNotRecipe = errors.New("not a recipe")
+	errNotRecipe               = errors.New("not a recipe")
+	errUnsupportedContentType  = errors.New("unsupported content type")
+	errUnexpectedRedirectCount = errors.New("too many redirects")
 )
 
 const (
 	// ApplicationJSONLDScriptTag is the selector for json-ld script tags
 	ApplicationJSONLDScriptTag = `script[type="application/ld+json"]`
+
+	fetchDeadline       = 20 * time.Second
+	maxRedirects        = 5
+	maxResponseBodySize = 2 * 1024 * 1024
 )
+
+var supportedContentTypes = []string{
+	"text/html",
+	"application/xhtml+xml",
+}
 
 func collyOnRequest() func(r *colly.Request) {
 	return func(r *colly.Request) {
-		log.Info().Str("target", r.URL.String()).Msgf("visiting %s", r.URL.String())
+		log.Info().Str("target", r.URL.String()).Msg("visiting recipe url")
 	}
 }
 
-func visit(debug bool, target string) (Recipe, error) {
-	// get domain
+func visit(ctx context.Context, debug bool, target string) (Recipe, error) {
 	if target == "" {
 		err := errors.New("target is required")
 		log.Error().Err(err).Caller().Msg("missing target host")
 		return Recipe{}, err
 	}
-	u, err := url.Parse(target)
+
+	deadlineCtx, cancel := context.WithTimeout(ctx, fetchDeadline)
+	defer cancel()
+
+	validatedURL, err := validateFetchURL(deadlineCtx, target)
 	if err != nil {
-		log.Error().Err(err).Caller().Str("target", target).Msg("failed to parse target host")
+		log.Error().Err(err).Caller().Msg("failed to validate target host")
 		return Recipe{}, err
 	}
 
-	// init colly
-	c := initCollector(u.Hostname(), debug)
+	c, err := initCollector(deadlineCtx, validatedURL, debug)
+	if err != nil {
+		log.Error().Err(err).Caller().Msg("failed to initialize collector")
+		return Recipe{}, err
+	}
+	c.MaxBodySize = maxResponseBodySize
 	var recipe Recipe
 
-	// colly onRequest
 	c.OnRequest(collyOnRequest())
-
-	// process 'application/ld+json' scripts
-	c.OnHTML(ApplicationJSONLDScriptTag, func(e *colly.HTMLElement) {
-		recipe, err = getRecipeFromJSONLD(e, target)
+	c.OnResponseHeaders(func(r *colly.Response) {
+		if !isSupportedContentType(r.Headers.Get("Content-Type")) {
+			r.Request.Abort()
+			err = fmt.Errorf("%w: %s", errUnsupportedContentType, r.Headers.Get("Content-Type"))
+		}
 	})
 
-	if err := c.Visit(target); err != nil {
-		log.Error().Err(err).Caller().Msg("failed to visit")
+	c.OnHTML(ApplicationJSONLDScriptTag, func(e *colly.HTMLElement) {
+		if recipe.Title != "" {
+			return
+		}
+		recipe, err = getRecipeFromJSONLD(e, validatedURL.Normalized)
+	})
+
+	if visitErr := c.Visit(validatedURL.Normalized); visitErr != nil {
+		log.Error().Err(visitErr).Caller().Msg("failed to visit")
+		return recipe, visitErr
+	}
+	if err != nil {
 		return recipe, err
 	}
 
 	return recipe, nil
+}
+
+func isSupportedContentType(value string) bool {
+	contentType := strings.ToLower(strings.TrimSpace(strings.Split(value, ";")[0]))
+	for _, allowed := range supportedContentTypes {
+		if contentType == allowed {
+			return true
+		}
+	}
+	return false
 }
 
 func getRecipeFromJSONLD(e *colly.HTMLElement, u string) (Recipe, error) {

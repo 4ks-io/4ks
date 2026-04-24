@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "3.5.0",
@@ -41,6 +42,7 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "tsx": "^4.20.6",
     "typescript": "^5.1.3"
   }
 }

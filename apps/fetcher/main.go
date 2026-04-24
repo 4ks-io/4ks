@@ -4,16 +4,11 @@ package fetcher
 import (
 	"bytes"
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"time"
 
@@ -36,25 +31,6 @@ func getMandatoryEnvVar(n string) string {
 		log.Fatal().Err(errors.New("missing env var")).Caller().Msgf("env var %s required", n)
 	}
 	return v
-}
-
-func encrypt(data, key []byte) (string, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-
-	// The IV needs to be unique, but not secure. Therefore it's common to include it at the beginning of the ciphertext.
-	ciphertext := make([]byte, aes.BlockSize+len(data))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", err
-	}
-
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], data)
-
-	return hex.EncodeToString(ciphertext), nil
 }
 
 func init() {
@@ -111,13 +87,16 @@ func fetcher(ctx context.Context, e event.Event) error {
 		return fmt.Errorf("event.DataAs: %w", err)
 	}
 
-	// validate url
-	if _, err := url.Parse(f.URL); err != nil {
+	validateCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	validatedURL, err := validateFetchURL(validateCtx, f.URL)
+	if err != nil {
 		return err
 	}
 
 	// scrape recipe
-	recipe, err := visit(debug, f.URL)
+	recipe, err := visit(ctx, debug, validatedURL.Normalized)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to visit")
 	}
@@ -139,11 +118,9 @@ func fetcher(ctx context.Context, e event.Event) error {
 		return err
 	}
 
-	// encrypt timestamp for api auth
-	currentTime := time.Now().Format(time.RFC3339)
-	encrypted, err := encrypt([]byte(currentTime), []byte(apiSecret))
+	nonce, err := newNonce()
 	if err != nil {
-		log.Error().Err(err).Caller().Msg("failed to encrypt")
+		log.Error().Err(err).Caller().Msg("failed to create auth nonce")
 		return err
 	}
 
@@ -156,7 +133,8 @@ func fetcher(ctx context.Context, e event.Event) error {
 
 	// set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-4ks-Auth", encrypted)
+	headers := buildSignatureHeaders([]byte(apiSecret), req.Method, req.URL.Host, req.URL.RequestURI(), data, time.Now(), nonce)
+	applySignatureHeaders(req, headers)
 
 	// perform request
 	resp, err := client.Do(req)

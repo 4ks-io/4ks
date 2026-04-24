@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { publicProcedure, router, logTrpc } from '@/server/trpc';
 import { getAPIClient, handleAPIError } from '..';
 import { dtos_CreateRecipe, dtos_UpdateRecipe } from '@4ks/api-fetch';
+import { validateFetchURL } from '@/libs/fetch-url';
 
 export const recipesRouter = router({
   getSignedURL: publicProcedure
@@ -92,18 +93,36 @@ export const recipesRouter = router({
         logTrpc(new Error(), opts.input, s, 'recipes.getMediaByIDMutation');
       }
     }),
-  fetch: publicProcedure.input(z.string().url()).mutation(async (opts) => {
-    const api = await getAPIClient();
-    const s = performance.now();
+  fetch: publicProcedure
+    .input(
+      z
+        .string()
+        .trim()
+        .superRefine((value, ctx) => {
+          try {
+            validateFetchURL(value);
+          } catch (error) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: error instanceof Error ? error.message : 'Invalid URL',
+            });
+          }
+        })
+    )
+    .mutation(async (opts) => {
+      const api = await getAPIClient();
+      const s = performance.now();
 
-    try {
-      return await api.recipes.postApiRecipesFetch({ url: opts.input });
-    } catch (e) {
-      handleAPIError(e);
-    } finally {
-      logTrpc(new Error(), opts.input, s, 'recipes.fetch');
-    }
-  }),
+      try {
+        return await api.recipes.postApiRecipesFetch({
+          url: validateFetchURL(opts.input),
+        });
+      } catch (e) {
+        handleAPIError(e);
+      } finally {
+        logTrpc(new Error(), opts.input, s, 'recipes.fetch');
+      }
+    }),
   fork: publicProcedure.input(z.string()).mutation(async (opts) => {
     const api = await getAPIClient();
     const s = performance.now();

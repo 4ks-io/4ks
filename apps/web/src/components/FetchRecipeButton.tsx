@@ -17,6 +17,7 @@ import TextField from '@mui/material/TextField';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert, { AlertProps } from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import { validateFetchURL } from '@/libs/fetch-url';
 
 export default function FetchRecipeButton() {
   const { user } = useUser();
@@ -62,14 +63,14 @@ export default function FetchRecipeButton() {
       return;
     }
     try {
-      const u = new URL(url);
+      const normalizedURL = validateFetchURL(url);
       setErr(false);
       setErrMsg('');
       setProcessing(true);
-      formData.mutate(u.href);
-    } catch (e) {
+      formData.mutate(normalizedURL);
+    } catch (e: unknown) {
       setErr(true);
-      setErrMsg('Invalid URL');
+      setErrMsg(e instanceof Error ? e.message : 'Invalid URL');
       return;
     }
   }

@@ -3,8 +3,11 @@ package controllers
 import (
 	recipesvc "4ks/apps/api/services/recipe"
 	usersvc "4ks/apps/api/services/user"
+	"4ks/libs/go/fetchurl"
 
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -308,16 +311,31 @@ func (c *recipeController) FetchRecipe(ctx *gin.Context) {
 		return
 	}
 
+	validateCtx, cancel := context.WithTimeout(ctx.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	validatedURL, err := fetchurl.Validate(validateCtx, payload.URL)
+	if err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+
+	log.Info().Str("submittedURL", payload.URL).Msg("accepted recipe fetch request")
+
 	e, err := c.userService.CreateUserEventByUserID(ctx, userID, &dtos.CreateUserEvent{
 		Type:   models.UserEventTypeFetchRecipe,
 		Status: models.UserEventProcessing,
-		Data:   models.FetcherEventData{URL: payload.URL},
+		Data:   models.FetcherEventData{URL: validatedURL.Normalized},
 	})
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
 
 	data := models.FetcherRequest{
 		UserID:      userID,
 		UserEventID: e.ID,
-		URL:         payload.URL,
+		URL:         validatedURL.Normalized,
 	}
 
 	// send to pubsub

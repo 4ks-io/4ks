@@ -1,98 +1,130 @@
 package middleware
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
+	"4ks/libs/go/fetchauth"
+	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
-func decrypt(encrypted string, key []byte) (string, error) {
-	ciphertext, err := hex.DecodeString(encrypted)
-	if err != nil {
-		return "", err
-	}
+const (
+	fetcherAuthClockSkew = 2 * time.Minute
+	fetcherNonceTTL      = 5 * time.Minute
+)
 
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-
-	if len(ciphertext) < aes.BlockSize {
-		return "", fmt.Errorf("ciphertext too short")
-	}
-	iv := ciphertext[:aes.BlockSize]
-	ciphertext = ciphertext[aes.BlockSize:]
-
-	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(ciphertext, ciphertext)
-
-	return string(ciphertext), nil
+type fetcherNonceStore struct {
+	mu     sync.Mutex
+	values map[string]time.Time
 }
 
-// AuthorizeFetcher validates the request has been authorized to fetch
+func newFetcherNonceStore() *fetcherNonceStore {
+	return &fetcherNonceStore{
+		values: make(map[string]time.Time),
+	}
+}
+
+func (s *fetcherNonceStore) Use(nonce string, now time.Time, ttl time.Duration) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for key, expiry := range s.values {
+		if !expiry.After(now) {
+			delete(s.values, key)
+		}
+	}
+
+	if _, exists := s.values[nonce]; exists {
+		return false
+	}
+
+	s.values[nonce] = now.Add(ttl)
+	return true
+}
+
+var replayProtection = newFetcherNonceStore()
+
+// AuthorizeFetcher validates the request has been authorized to fetch.
 func AuthorizeFetcher() gin.HandlerFunc {
 	secret, ok := os.LookupEnv("API_FETCHER_PSK")
-	if !ok {
+	if !ok || secret == "" {
 		log.Fatal().Msg("API_FETCHER_PSK required")
 	}
-	key := []byte(secret)
 
+	return authorizeFetcherWithSecret([]byte(secret), replayProtection, time.Now)
+}
+
+func authorizeFetcherWithSecret(secret []byte, nonces *fetcherNonceStore, nowFn func() time.Time) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// get the authorization header
-		h := c.Request.Header["X-4ks-Auth"][0]
-		if h == "" {
-			msg := "missing auth header"
-			log.Error().Err(errors.New(msg)).Msgf("authorization error: %s", msg)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"msg": msg})
+		timestamp := c.GetHeader(fetchauth.HeaderTimestamp)
+		nonce := c.GetHeader(fetchauth.HeaderNonce)
+		bodyHash := c.GetHeader(fetchauth.HeaderBodyHash)
+		signature := c.GetHeader(fetchauth.HeaderSignature)
+
+		if timestamp == "" || nonce == "" || bodyHash == "" || signature == "" {
+			abortFetcherAuth(c, errors.New("missing auth header"), "missing auth header")
 			return
 		}
 
-		// decrypt the header
-		decrypted, err := decrypt(h, key)
+		issuedAt, err := time.Parse(time.RFC3339, timestamp)
 		if err != nil {
-			msg := "failed to decrypt"
-			log.Error().Err(err).Msgf("authorization error: %s", msg)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"msg": msg})
+			abortFetcherAuth(c, err, "malformed auth timestamp")
 			return
 		}
 
-		// parse the decrypted time
-		decryptedTime, err := time.Parse(time.RFC3339, decrypted)
+		now := nowFn().UTC()
+		if issuedAt.Before(now.Add(-fetcherAuthClockSkew)) || issuedAt.After(now.Add(fetcherAuthClockSkew)) {
+			abortFetcherAuth(c, errors.New("expired"), "expired auth timestamp")
+			return
+		}
+
+		body, err := io.ReadAll(c.Request.Body)
 		if err != nil {
-			msg := "failed to parse timestamp"
-			log.Error().Err(err).Msgf("authorization error: %s", msg)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"msg": msg})
+			abortFetcherAuth(c, err, "failed to read request body")
+			return
+		}
+		c.Request.Body = io.NopCloser(bytes.NewReader(body))
+
+		sum := sha256.Sum256(body)
+		expectedBodyHash := hex.EncodeToString(sum[:])
+		if !strings.EqualFold(expectedBodyHash, bodyHash) {
+			abortFetcherAuth(c, errors.New("body hash mismatch"), "invalid body hash")
 			return
 		}
 
-		if time.Since(decryptedTime).Seconds() >= 10 {
-			msg := "expired"
-			log.Error().Err(err).Msgf("authorization error: %s", msg)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"msg": msg})
+		if !nonces.Use(nonce, now, fetcherNonceTTL) {
+			abortFetcherAuth(c, errors.New("nonce replay"), "replayed auth nonce")
 			return
 		}
 
-		// sub := c.GetString("sub")
-		// fmt.Println(sub)
-		// ok, err := Enforce(sub, obj, act)
-		// //ok, err := enforce(val.(string), obj, act, adapter)
-		// if err != nil {
-		// 	log.Error().Err(err).Msg("authorization error")
-		// 	c.AbortWithStatusJSON(500, "authorization error")
-		// 	return
-		// }
-		// if !ok {
-		// 	c.AbortWithStatusJSON(403, "forbidden")
-		// 	return
-		// }
+		if err := fetchauth.Verify(
+			secret,
+			c.Request.Method,
+			c.Request.Host,
+			c.Request.URL.RequestURI(),
+			bodyHash,
+			timestamp,
+			nonce,
+			signature,
+		); err != nil {
+			abortFetcherAuth(c, err, "invalid auth signature")
+			return
+		}
+
 		c.Next()
 	}
+}
+
+func abortFetcherAuth(c *gin.Context, err error, msg string) {
+	log.Error().Err(err).Msgf("authorization error: %s", msg)
+	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"msg": "unauthorized"})
 }

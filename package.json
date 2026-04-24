@@ -14,8 +14,10 @@
     "swag:api": "go tool swag init --parseDependency --parseInternal --parseDepth 1 -d apps/api/ -o apps/api/docs",
     "swag:web": "pnpm --filter @4ks/api-fetch fetch-n-build",
     "swag": "pnpm run swag:api && pnpm run swag:web",
-    "test-fetcher": "pnpm --filter @4ks/fetcher test",
-    "test": "npm-run-all test-fetcher"
+    "test-web": "make test-web",
+    "test-fetcher": "make test-fetcher",
+    "test-api": "make test-api",
+    "test": "npm-run-all test-web test-fetcher test-api"
   },
   "private": true,
   "pnpm": {
