@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/gocolly/colly/v2"
@@ -23,8 +24,9 @@ func initCollector(ctx context.Context, validated *validatedURL, _ bool) (*colly
 	c.SetRequestTimeout(requestTimeout)
 
 	if err := c.Limit(&colly.LimitRule{
-		Parallelism: 1,
-		Delay:       500 * time.Millisecond,
+		DomainRegexp: "^" + regexp.QuoteMeta(validated.Hostname) + `(?::\d+)?$`,
+		Parallelism:  1,
+		Delay:        500 * time.Millisecond,
 	}); err != nil {
 		return nil, err
 	}
