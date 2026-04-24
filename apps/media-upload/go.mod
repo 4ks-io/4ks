@@ -4,6 +4,7 @@ go 1.26.2
 
 require (
 	cloud.google.com/go/storage v1.62.1
+	cloud.google.com/go/vision/v2 v2.12.0
 	github.com/disintegration/imaging v1.6.2
 )
 
@@ -17,7 +18,6 @@ require (
 	cloud.google.com/go/iam v1.8.0 // indirect
 	cloud.google.com/go/longrunning v0.10.0 // indirect
 	cloud.google.com/go/monitoring v1.26.0 // indirect
-	cloud.google.com/go/vision/v2 v2.11.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.31.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0 // indirect
@@ -62,13 +62,11 @@ require (
 
 require (
 	cloud.google.com/go/firestore v1.22.0
-	cloud.google.com/go/vision v1.2.0
 	github.com/GoogleCloudPlatform/functions-framework-go v1.8.0
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	golang.org/x/image v0.39.0 // indirect
-	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 	google.golang.org/api v0.274.0 // indirect
-	google.golang.org/genproto v0.0.0-20260414002931-afd174a4e478
+	google.golang.org/genproto v0.0.0-20260414002931-afd174a4e478 // indirect
 )

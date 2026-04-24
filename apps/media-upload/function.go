@@ -4,11 +4,13 @@ package function
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -63,11 +65,14 @@ func uploadImage(ctx context.Context, e event.Event) error {
 		return fmt.Errorf("event.DataAs: %v", err)
 	}
 
-	// get filename details
-	f := getFilenameDetails(data.Name)
-
-	// get firestore id from basename
-	id := strings.Split(f.Basename, "/")[1]
+	id, f, err := parseUploadObjectName(data.Name)
+	if err != nil {
+		if id != "" {
+			updateRecipeMedia(isDevelopment, c, ctx, id)(MediaStatusErrorUnknown)
+		}
+		log.Printf("upload: rejecting malformed object name %q: %v", data.Name, err)
+		return err
+	}
 
 	log.Printf("Processing (%s) gs://%s/%s", id, data.Bucket, data.Name)
 
@@ -102,10 +107,16 @@ func uploadImage(ctx context.Context, e event.Event) error {
 	// 	return err
 	// }
 
+	attrs, err := src.Attrs(ctx)
+	if err != nil {
+		up(MediaStatusErrorMissingAttr)
+		return fmt.Errorf("upload: failed to get object attributes %q: %w", data.Name, err)
+	}
+
 	// verify and validate src content-type and content (image vision)
-	if err, status := validate(ctx, src); err != nil {
+	if err, status := validate(ctx, src, attrs); err != nil {
 		// log.Printf("ERROR: validation error -> ", err)
-		// if xerrors.Is(err, retryableError) {
+		// if errors.Is(err, retryableError) {
 		// 	return err
 		// }
 		up(status)
@@ -124,14 +135,12 @@ func uploadImage(ctx context.Context, e event.Event) error {
 		up(MediaStatusErrorFailedResize)
 		return fmt.Errorf("unable to read file %s in %s (%v)", data.Name, distributionBucket, err)
 	}
-	// read as []byte
-	slurp, err := io.ReadAll(rc)
+	i, ifmt, err := decodeImageForProcessing(rc, attrs.ContentType)
 	rc.Close()
 	if err != nil {
 		up(MediaStatusErrorFailedResize)
-		return fmt.Errorf("unable to slurp: %v", err)
+		return fmt.Errorf("unable to decode image: %v", err)
 	}
-	i, ifmt, _ := image.Decode(bytes.NewReader(slurp))
 
 	// create variants
 	variants := []int{256, 1024}
@@ -179,4 +188,40 @@ func GetBoolEnv(key string, fallback bool) bool {
 		return fallback
 	}
 	return ret
+}
+
+func parseUploadObjectName(name string) (string, FileProps, error) {
+	ext := filepath.Ext(name)
+	if ext == "" {
+		return "", FileProps{}, errors.New("object name is missing a file extension")
+	}
+
+	base := strings.TrimSuffix(name, ext)
+	parts := strings.Split(base, "/")
+	if len(parts) != 2 || parts[0] != "image" || parts[1] == "" {
+		candidateID := ""
+		if len(parts) >= 2 {
+			candidateID = parts[1]
+		}
+		return candidateID, FileProps{}, fmt.Errorf("object name must match image/<id>%s", ext)
+	}
+
+	return parts[1], FileProps{Extension: ext, Basename: base}, nil
+}
+
+func decodeImageForProcessing(r io.Reader, contentType string) (image.Image, string, error) {
+	slurp, format, err := loadValidatedImageBytes(r, contentType)
+	if err != nil {
+		return nil, "", err
+	}
+
+	i, ifmt, err := image.Decode(bytes.NewReader(slurp))
+	if err != nil {
+		return nil, "", err
+	}
+	if !isMIMETypeCompatible(contentType, ifmt) {
+		return nil, "", fmt.Errorf("upload: decoded image format %q does not match content type %q", ifmt, contentType)
+	}
+
+	return i, format, nil
 }

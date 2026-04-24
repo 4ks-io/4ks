@@ -343,8 +343,11 @@ cloud.google.com/go/video v1.29.0/go.mod h1:KxDL728ZzH+FJwtEb9XkiLTETW5bI37hTWbJ
 cloud.google.com/go/videointelligence v1.11.2 h1:vAKuM4YHwZy1W5P7hGJdfXriovqHHUZKhDBq8o4nqfg=
 cloud.google.com/go/videointelligence v1.11.2/go.mod h1:ocfIGYtIVmIcWk1DsSGOoDiXca4vaZQII1C85qtoplc=
 cloud.google.com/go/videointelligence v1.14.0/go.mod h1:mmX1JpIWzwozaigrdRNjikZc3aFLNHFKh+OFwAdfiW4=
+cloud.google.com/go/vision v1.2.0 h1:/CsSTkbmO9HC8iQpxbK8ATms3OQaX3YQUeTMGCxlaK4=
 cloud.google.com/go/vision/v2 v2.7.0 h1:8C8RXUJoflCI4yVdqhTy9tRyygSHmp60aP363z23HKg=
 cloud.google.com/go/vision/v2 v2.7.3/go.mod h1:V0IcLCY7W+hpMKXK1JYE0LV5llEqVmj+UJChjvA1WsM=
+cloud.google.com/go/vision/v2 v2.12.0 h1:GHCFhIlvpEX0IEwKCrIqS3KlOpxzINa3gucvdjoWBCE=
+cloud.google.com/go/vision/v2 v2.12.0/go.mod h1:ODlLCajJOq4t8thoi1uVvbnfIfix73HsYWhZuIveagQ=
 cloud.google.com/go/vmmigration v1.7.2 h1:ObE8VWzL+xkU22IsPEMvPCWArnSQ85dEwR5fzgaOvA4=
 cloud.google.com/go/vmmigration v1.7.2/go.mod h1:iA2hVj22sm2LLYXGPT1pB63mXHhrH1m/ruux9TwWLd8=
 cloud.google.com/go/vmmigration v1.12.0/go.mod h1:MP6mQ21ru1usBeCbl805Ioz0Fy+yf3qK2kUkhZ69QQY=

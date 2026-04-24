@@ -1,62 +1,116 @@
 package function
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"image"
-	"image/gif"
-	"image/jpeg"
-	"image/png"
+	"io"
 
 	"cloud.google.com/go/storage"
-	vision "cloud.google.com/go/vision/apiv1"
-	"golang.org/x/xerrors"
-	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
+	vision "cloud.google.com/go/vision/v2/apiv1"
+	"cloud.google.com/go/vision/v2/apiv1/visionpb"
 )
 
-var retryableError = xerrors.New("upload: retryable error")
+var retryableError = errors.New("upload: retryable error")
 
-func validate(ctx context.Context, obj *storage.ObjectHandle) (error, MediaStatus) {
-	attrs, err := obj.Attrs(ctx)
-	if err != nil {
-		return xerrors.Errorf("upload: failed to get object attributes %q : %w",
-			obj.ObjectName(), retryableError), MediaStatusErrorMissingAttr
+const (
+	maxUploadBytes   int64 = 6 * 1024 * 1024
+	maxDecodedWidth        = 8192
+	maxDecodedHeight       = 8192
+	maxDecodedPixels int64 = 40 * 1024 * 1024
+)
+
+func validate(ctx context.Context, obj *storage.ObjectHandle, attrs *storage.ObjectAttrs) (error, MediaStatus) {
+	if err := validateObjectSize(attrs.Size); err != nil {
+		return err, MediaStatusErrorSize
 	}
-	// max 5MB
-	if attrs.Size >= 1024*1024*6 {
-		return fmt.Errorf("upload: image file is too large, got = %d", attrs.Size), MediaStatusErrorSize
-	}
-	// Validates obj and returns true if it conforms supported image formats.
-	if err := validateMIMEType(ctx, attrs, obj); err != nil {
+	if err := validateMIMEType(ctx, attrs.ContentType, obj); err != nil {
 		return err, MediaStatusErrorInvalidMIMEType
 	}
 	// Validates obj by calling Vision API.
 	return validateByVisionAPI(ctx, obj)
 }
 
-func validateMIMEType(ctx context.Context, attrs *storage.ObjectAttrs, obj *storage.ObjectHandle) error {
+func validateObjectSize(size int64) error {
+	if size > maxUploadBytes {
+		return fmt.Errorf("upload: image file is too large, got = %d", size)
+	}
+	return nil
+}
+
+func validateMIMEType(ctx context.Context, contentType string, obj *storage.ObjectHandle) error {
 	r, err := obj.NewReader(ctx)
 	if err != nil {
-		return xerrors.Errorf("upload: failed to open new file %q : %w",
+		return fmt.Errorf("upload: failed to open new file %q : %w",
 			obj.ObjectName(), retryableError)
 	}
 	defer r.Close()
-	if _, err := func(ct string) (image.Image, error) {
-		switch ct {
-		case "image/png":
-			return png.Decode(r)
-		case "image/jpeg", "image/jpg":
-			return jpeg.Decode(r)
-		case "image/gif":
-			return gif.Decode(r)
-		default:
-			return nil, fmt.Errorf("upload: unsupported MIME type, got = %q", ct)
-		}
-	}(attrs.ContentType); err != nil {
-		return err
+	_, _, err = loadValidatedImageBytes(r, contentType)
+	return err
+}
+
+func loadValidatedImageBytes(r io.Reader, contentType string) ([]byte, string, error) {
+	if !isSupportedMIMEType(contentType) {
+		return nil, "", fmt.Errorf("upload: unsupported MIME type, got = %q", contentType)
+	}
+
+	slurp, err := io.ReadAll(io.LimitReader(r, maxUploadBytes+1))
+	if err != nil {
+		return nil, "", fmt.Errorf("upload: failed to read image: %w", err)
+	}
+	if err := validateObjectSize(int64(len(slurp))); err != nil {
+		return nil, "", err
+	}
+
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(slurp))
+	if err != nil {
+		return nil, "", fmt.Errorf("upload: failed to inspect image: %w", err)
+	}
+	if !isMIMETypeCompatible(contentType, format) {
+		return nil, "", fmt.Errorf("upload: decoded image format %q does not match content type %q", format, contentType)
+	}
+	if err := validateImageConfig(cfg); err != nil {
+		return nil, "", err
+	}
+
+	return slurp, format, nil
+}
+
+func validateImageConfig(cfg image.Config) error {
+	if cfg.Width <= 0 || cfg.Height <= 0 {
+		return fmt.Errorf("upload: invalid image dimensions %dx%d", cfg.Width, cfg.Height)
+	}
+	if cfg.Width > maxDecodedWidth || cfg.Height > maxDecodedHeight {
+		return fmt.Errorf("upload: image dimensions exceed limit, got = %dx%d", cfg.Width, cfg.Height)
+	}
+	if int64(cfg.Width)*int64(cfg.Height) > maxDecodedPixels {
+		return fmt.Errorf("upload: image pixel count exceeds limit, got = %d", int64(cfg.Width)*int64(cfg.Height))
 	}
 	return nil
+}
+
+func isSupportedMIMEType(contentType string) bool {
+	switch contentType {
+	case "image/png", "image/jpeg", "image/jpg", "image/gif":
+		return true
+	default:
+		return false
+	}
+}
+
+func isMIMETypeCompatible(contentType string, format string) bool {
+	switch contentType {
+	case "image/png":
+		return format == "png"
+	case "image/jpeg", "image/jpg":
+		return format == "jpeg"
+	case "image/gif":
+		return format == "gif"
+	default:
+		return false
+	}
 }
 
 // validateByVisionAPI uses Safe Search Detection provided by Cloud Vision API.
@@ -64,37 +118,53 @@ func validateMIMEType(ctx context.Context, attrs *storage.ObjectAttrs, obj *stor
 func validateByVisionAPI(ctx context.Context, obj *storage.ObjectHandle) (error, MediaStatus) {
 	client, err := vision.NewImageAnnotatorClient(ctx)
 	if err != nil {
-		return xerrors.Errorf(
+		return fmt.Errorf(
 			"upload: failed to create a ImageAnnotator client, error = %v : %w",
 			err,
 			retryableError,
 		), MediaStatusErrorVision
 	}
-	ssa, err := client.DetectSafeSearch(
-		ctx,
-		vision.NewImageFromURI(fmt.Sprintf("gs://%s/%s", obj.BucketName(), obj.ObjectName())),
-		nil,
-	)
+	defer client.Close()
+
+	resp, err := client.BatchAnnotateImages(ctx, &visionpb.BatchAnnotateImagesRequest{
+		Requests: []*visionpb.AnnotateImageRequest{
+			{
+				Image: &visionpb.Image{
+					Source: &visionpb.ImageSource{
+						ImageUri: fmt.Sprintf("gs://%s/%s", obj.BucketName(), obj.ObjectName()),
+					},
+				},
+				Features: []*visionpb.Feature{
+					{
+						Type: visionpb.Feature_SAFE_SEARCH_DETECTION,
+					},
+				},
+			},
+		},
+	})
 	if err != nil {
-		return xerrors.Errorf(
+		return fmt.Errorf(
 			"upload: failed to detect safe search, error = %v : %w",
 			err,
 			retryableError,
 		), MediaStatusErrorSafeSearch
 	}
+	if len(resp.GetResponses()) != 1 || resp.GetResponses()[0].GetSafeSearchAnnotation() == nil {
+		return errors.New("upload: safe search response missing annotation"), MediaStatusErrorSafeSearch
+	}
+
+	ssa := resp.GetResponses()[0].GetSafeSearchAnnotation()
 	// Returns an unretryable error if there is any possibility of inappropriate image.
-	// Likelihood has been defined in the following:
-	// https://github.com/google/go-genproto/blob/5fe7a883aa19554f42890211544aa549836af7b7/googleapis/cloud/vision/v1/image_annotator.pb.go#L37-L50
-	if ssa.Adult >= pb.Likelihood_POSSIBLE {
+	if ssa.Adult >= visionpb.Likelihood_POSSIBLE {
 		return errors.New("upload: exceeds the prescribed likelihood (adult)"), MediaStatusErrorInappropriateAdult
 	}
-	if ssa.Medical >= pb.Likelihood_POSSIBLE {
+	if ssa.Medical >= visionpb.Likelihood_POSSIBLE {
 		return errors.New("upload: exceeds the prescribed likelihood (medical)"), MediaStatusErrorInappropriateMedical
 	}
-	if ssa.Violence >= pb.Likelihood_POSSIBLE {
+	if ssa.Violence >= visionpb.Likelihood_POSSIBLE {
 		return errors.New("upload: exceeds the prescribed likelihood (violence)"), MediaStatusErrorInappropriateViolence
 	}
-	if ssa.Racy >= pb.Likelihood_POSSIBLE {
+	if ssa.Racy >= visionpb.Likelihood_POSSIBLE {
 		return errors.New("upload: exceeds the prescribed likelihood"), MediaStatusErrorInappropriateRacy
 	}
 	return nil, MediaStatusProcessing
