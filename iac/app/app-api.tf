@@ -124,6 +124,17 @@ resource "google_cloud_run_v2_service" "api" {
         value = local.api_url
       }
       env {
+        name = "CORS_ALLOWED_ORIGINS"
+        value = join(",", compact([
+          terraform.workspace == "app-dev-us-east" ? "https://local.4ks.io" : "",
+          local.web_url,
+        ]))
+      }
+      env {
+        name  = "TRUSTED_PROXY_CIDRS"
+        value = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+      }
+      env {
         name  = "EXPORTER_TYPE"
         value = "JAEGER"
       }

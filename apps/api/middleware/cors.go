@@ -1,22 +1,58 @@
 package middleware
 
-import "github.com/gin-gonic/gin"
+import (
+	"4ks/apps/api/utils"
+	"net/http"
+	"strconv"
+	"strings"
 
-// CorsMiddleware adds CORS headers to the response
-func CorsMiddleware() gin.HandlerFunc {
+	"github.com/gin-gonic/gin"
+)
+
+// CorsMiddleware adds config-driven CORS headers to the response.
+func CorsMiddleware(cfg utils.CORSConfig) gin.HandlerFunc {
+	// Exact-match lookups keep behavior predictable across environments and
+	// avoid accidental subdomain wildcarding.
+	allowedOrigins := make(map[string]struct{}, len(cfg.AllowedOrigins))
+	for _, origin := range cfg.AllowedOrigins {
+		allowedOrigins[origin] = struct{}{}
+	}
+
+	// Precompute static header payloads once when the middleware is built.
+	allowMethods := strings.Join(cfg.AllowedMethods, ", ")
+	allowHeaders := strings.Join(cfg.AllowedHeaders, ", ")
+	exposeHeaders := strings.Join(cfg.ExposedHeaders, ", ")
+	maxAge := strconv.FormatInt(int64(cfg.MaxAge.Seconds()), 10)
+
 	return func(c *gin.Context) {
-		// tr@ck: fix url
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "https://www.4ks.io")
-		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		// Responses vary by origin and by preflight request headers, so advertise
+		// that variance explicitly for downstream caches.
+		c.Writer.Header().Add("Vary", "Origin")
+		c.Writer.Header().Add("Vary", "Access-Control-Request-Method")
+		c.Writer.Header().Add("Vary", "Access-Control-Request-Headers")
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(200)
-		} else {
-			c.Next()
+		origin := c.GetHeader("Origin")
+		if origin != "" {
+			if _, ok := allowedOrigins[origin]; ok {
+				// Reflect only allowlisted origins so credentialed requests remain valid.
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Access-Control-Allow-Methods", allowMethods)
+				c.Header("Access-Control-Allow-Headers", allowHeaders)
+				c.Header("Access-Control-Expose-Headers", exposeHeaders)
+				c.Header("Access-Control-Max-Age", maxAge)
+				if cfg.AllowCredentials {
+					c.Header("Access-Control-Allow-Credentials", "true")
+				}
+			}
 		}
+
+		if c.Request.Method == http.MethodOptions {
+			// CORS preflights do not need to hit application handlers once the
+			// browser has the policy response.
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
 	}
 }

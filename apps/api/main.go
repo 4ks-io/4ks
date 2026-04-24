@@ -77,12 +77,77 @@ type RouteOpts struct {
 
 // EnforceAuth enforces authentication
 func EnforceAuth(r *gin.RouterGroup) {
+	// JWT validation runs first so downstream middleware and handlers can rely on
+	// the authenticated identity stored in Gin context.
 	r.Use(adapter.Wrap(middleware.EnforceJWT()))
 	r.Use(middleware.AppendCustomClaims())
 }
 
 // AppendRoutes appends routes to the router
 func AppendRoutes(sysFlags *utils.SystemFlags, r *gin.Engine, c *Controllers, o *RouteOpts) {
+	// One shared store lets related routes reuse buckets consistently while
+	// keeping the limiter implementation local to this process.
+	rateLimitStore := middleware.NewLimiterStore()
+
+	publicReadLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
+		Name: "public-read",
+		// Public recipe reads are anonymous, so the limiter keys by resolved client IP.
+		Rules: []middleware.RateLimitRule{
+			middleware.QPSRule(5),
+			middleware.QPMRule(120),
+		},
+		KeyFunc: middleware.RateLimitByIP,
+	})
+	authenticatedWriteLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
+		Name: "authenticated-write",
+		// Authenticated writes are keyed by user ID first so one NATed IP does not
+		// throttle unrelated users behind the same egress.
+		Rules: []middleware.RateLimitRule{
+			middleware.QPSRule(2),
+			middleware.QPMRule(30),
+		},
+		KeyFunc: middleware.RateLimitByUserOrIP,
+	})
+	recipeFetchLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
+		Name: "recipe-fetch",
+		// Fetch-by-URL fanout is expensive, so this policy stays tighter than the
+		// generic write budget across both burst and sustained windows.
+		Rules: []middleware.RateLimitRule{
+			middleware.QPSRule(1),
+			middleware.QPMRule(3),
+		},
+		KeyFunc: middleware.RateLimitByUserOrIP,
+	})
+	userCreateLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
+		Name: "user-create",
+		// Account creation is low-volume by design and should resist scripted abuse.
+		Rules: []middleware.RateLimitRule{
+			middleware.QPSRule(1),
+			middleware.QPMRule(3),
+		},
+		KeyFunc: middleware.RateLimitByUserOrIP,
+	})
+	usernameCheckLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
+		Name: "username-check",
+		// Username checks are public-facing validation traffic, so they get their
+		// own narrower bucket instead of sharing the generic write pool.
+		Rules: []middleware.RateLimitRule{
+			middleware.QPSRule(2),
+			middleware.QPMRule(20),
+		},
+		KeyFunc: middleware.RateLimitByUserOrIP,
+	})
+	mediaInitLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
+		Name: "media-init",
+		// Media initialization allocates upload metadata and signed URLs, so it is
+		// rate-limited separately from other write endpoints.
+		Rules: []middleware.RateLimitRule{
+			middleware.QPSRule(1),
+			middleware.QPMRule(6),
+		},
+		KeyFunc: middleware.RateLimitByUserOrIP,
+	})
+
 	// system
 	r.GET("/api/ready", c.System.CheckReadiness)
 	r.GET("/api/healthcheck", c.System.Healthcheck)
@@ -122,24 +187,25 @@ func AppendRoutes(sysFlags *utils.SystemFlags, r *gin.Engine, c *Controllers, o 
 		// recipes
 		recipes := api.Group("/recipes")
 		{
-			recipes.GET("/:id", c.Recipe.GetRecipe)
-			recipes.GET("/", c.Recipe.GetRecipes)
-			recipes.GET("/:id/revisions", c.Recipe.GetRecipeRevisions)
-			recipes.GET("/revisions/:revisionID", c.Recipe.GetRecipeRevision)
-			recipes.GET("/:id/media", c.Recipe.GetRecipeMedia)
-			recipes.GET("/author/:username", c.Recipe.GetRecipesByUsername)
+			// Public recipe reads are limited separately from authenticated writes.
+			recipes.GET("/:id", publicReadLimit, c.Recipe.GetRecipe)
+			recipes.GET("/", publicReadLimit, c.Recipe.GetRecipes)
+			recipes.GET("/:id/revisions", publicReadLimit, c.Recipe.GetRecipeRevisions)
+			recipes.GET("/revisions/:revisionID", publicReadLimit, c.Recipe.GetRecipeRevision)
+			recipes.GET("/:id/media", publicReadLimit, c.Recipe.GetRecipeMedia)
+			recipes.GET("/author/:username", publicReadLimit, c.Recipe.GetRecipesByUsername)
 
 			// authenticated routes below this line
 			EnforceAuth(recipes)
 
-			recipes.POST("/", c.Recipe.CreateRecipe)
-			recipes.POST("/fetch", c.Recipe.FetchRecipe)
-			recipes.PATCH("/:id", c.Recipe.UpdateRecipe)
-			recipes.POST("/:id/star", c.Recipe.StarRecipe)
-			recipes.POST("/:id/fork", c.Recipe.ForkRecipe)
-			// create recipeMedia in init status + return signedURL
-			recipes.POST("/:id/media", c.Recipe.CreateRecipeMedia)
-			recipes.DELETE("/:id", c.Recipe.DeleteRecipe)
+			recipes.POST("/", authenticatedWriteLimit, c.Recipe.CreateRecipe)
+			recipes.POST("/fetch", recipeFetchLimit, c.Recipe.FetchRecipe)
+			recipes.PATCH("/:id", authenticatedWriteLimit, c.Recipe.UpdateRecipe)
+			recipes.POST("/:id/star", authenticatedWriteLimit, c.Recipe.StarRecipe)
+			recipes.POST("/:id/fork", authenticatedWriteLimit, c.Recipe.ForkRecipe)
+			// Media initialization is its own abuse target because it creates a signed upload URL.
+			recipes.POST("/:id/media", mediaInitLimit, c.Recipe.CreateRecipeMedia)
+			recipes.DELETE("/:id", authenticatedWriteLimit, c.Recipe.DeleteRecipe)
 		}
 
 		// authenticated routes below this line
@@ -150,22 +216,22 @@ func AppendRoutes(sysFlags *utils.SystemFlags, r *gin.Engine, c *Controllers, o 
 		{
 			user.HEAD("/", c.User.HeadAuthenticatedUser)
 			user.GET("/", c.User.GetAuthenticatedUser)
-			user.POST("/", c.User.CreateUser)
-			user.PATCH("/", c.User.UpdateUser)
-			user.DELETE("/events/:id", c.User.RemoveUserEvent)
+			user.POST("/", userCreateLimit, c.User.CreateUser)
+			user.PATCH("/", authenticatedWriteLimit, c.User.UpdateUser)
+			user.DELETE("/events/:id", authenticatedWriteLimit, c.User.RemoveUserEvent)
 		}
 
 		// users
 		users := api.Group("/users")
 		{
-			users.DELETE("/:id", middleware.Authorize("/users/*", "delete"), c.User.DeleteUser)
-			users.POST("/username", c.User.TestUsername)
-			users.POST("/", c.User.CreateUser)
+			users.DELETE("/:id", authenticatedWriteLimit, middleware.Authorize("/users/*", "delete"), c.User.DeleteUser)
+			users.POST("/username", usernameCheckLimit, c.User.TestUsername)
+			users.POST("/", userCreateLimit, c.User.CreateUser)
 			// users.GET("profile", c.User.GetAuthenticatedUser)
 			// users.GET("exist", c.User.GetAuthenticatedUserExist)
 			users.GET("", middleware.Authorize("/users/*", "list"), c.User.GetUsers)
 			users.GET(":id", c.User.GetUser)
-			users.PATCH(":id", c.User.UpdateUser)
+			users.PATCH(":id", authenticatedWriteLimit, c.User.UpdateUser)
 
 			// users.GET("", middleware.Authorize("/users/*", "list"), c.User.GetUsers)
 			// users.DELETE(":id", middleware.Authorize("/users/*", "delete"), c.User.DeleteUser)
@@ -194,6 +260,13 @@ func main() {
 	// context
 	var ctx = context.Background()
 	configureLogging()
+
+	// Validate HTTP-facing config before any external clients are initialized so
+	// bad CORS or proxy settings fail fast during startup.
+	httpSecurityConfig, err := utils.LoadHTTPSecurityConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("invalid HTTP security configuration")
+	}
 
 	// args
 	sysFlags := utils.SystemFlags{
@@ -297,9 +370,12 @@ func main() {
 	// gin and middleware
 	router := gin.New()
 	router.Use(gin.Recovery())
-	router.SetTrustedProxies(nil)
+	// Trust forwarding headers only from the explicitly configured proxy layer.
+	if err := router.SetTrustedProxies(httpSecurityConfig.Proxy.TrustedCIDRs); err != nil {
+		log.Fatal().Err(err).Msg("failed to configure trusted proxies")
+	}
 	router.Use(middleware.ErrorHandler)
-	router.Use(middleware.CorsMiddleware())
+	router.Use(middleware.CorsMiddleware(httpSecurityConfig.CORS))
 	if sysFlags.Debug {
 		router.Use(middleware.DefaultStructuredLogger())
 	}
