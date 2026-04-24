@@ -30,15 +30,21 @@ start:
 	fi
 
 stop:
-	@if command -v curl >/dev/null 2>&1 && curl -fsS "http://127.0.0.1:$(TILT_PORT)/" >/dev/null 2>&1; then \
-		pid="$$(tilt get session Tiltfile -o jsonpath='{.status.pid}' 2>/dev/null || true)"; \
-		tilt down || true; \
-		if [ -n "$$pid" ]; then \
-			printf "Terminating Tilt process %s.\n" "$$pid"; \
-			kill "$$pid" 2>/dev/null || true; \
+	@pid="$$(tilt get session Tiltfile -o jsonpath='{.status.pid}' 2>/dev/null || true)"; \
+	tilt down || true; \
+	if [ -n "$$pid" ]; then \
+		printf "Terminating Tilt process %s.\n" "$$pid"; \
+		kill "$$pid" 2>/dev/null || true; \
+	elif command -v lsof >/dev/null 2>&1; then \
+		pids="$$(lsof -tiTCP:$(TILT_PORT) -sTCP:LISTEN 2>/dev/null || true)"; \
+		if [ -n "$$pids" ]; then \
+			printf "Terminating Tilt process(es) listening on port %s: %s.\n" "$(TILT_PORT)" "$$pids"; \
+			kill $$pids 2>/dev/null || true; \
+		else \
+			printf "No running Tilt process found after tilt down.\n"; \
 		fi; \
 	else \
-		printf "No Tilt session found on http://localhost:$(TILT_PORT)/; skipping tilt down.\n"; \
+		printf "No running Tilt process found after tilt down.\n"; \
 	fi
 
 restart: stop

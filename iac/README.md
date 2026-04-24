@@ -139,6 +139,7 @@ TF_WORKSPACE=app-prd-us-east terraform plan \
   -var="web_build_number=${BUILD_NUMBER}" \
   -var="fetcher_build_number=${BUILD_NUMBER}" \
   -var='typesense_api_key=...' \
+  -var='typesense_client_api_key_env_map={"app-prd-us-east"="..."}' \
   -var='auth0_client_secret=...' \
   -var='auth0_secret=...'
 TF_WORKSPACE=app-prd-us-east terraform apply \
@@ -146,6 +147,7 @@ TF_WORKSPACE=app-prd-us-east terraform apply \
   -var="web_build_number=${BUILD_NUMBER}" \
   -var="fetcher_build_number=${BUILD_NUMBER}" \
   -var='typesense_api_key=...' \
+  -var='typesense_client_api_key_env_map={"app-prd-us-east"="..."}' \
   -var='auth0_client_secret=...' \
   -var='auth0_secret=...'
 ```

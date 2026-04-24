@@ -18,6 +18,8 @@ on:
         required: true
       typesense_api_key:
         required: true
+      typesense_client_api_key:
+        required: true
       auth0_secret:
         required: true
       auth0_client_secret:
@@ -100,6 +102,8 @@ jobs:
           TF_VAR_web_build_number: ${{ inputs.build_number }}
           TF_VAR_fetcher_build_number: ${{ inputs.build_number }}
           TF_VAR_typesense_api_key: ${{ secrets.typesense_api_key }}
+          TF_VAR_typesense_client_api_key_env_map: >-
+            {"app-${{ inputs.environment }}-us-east":"${{ secrets.typesense_client_api_key }}"}
           TF_VAR_auth0_client_secret: ${{ secrets.auth0_client_secret }}
           TF_VAR_auth0_secret: ${{ secrets.auth0_secret }}
           # TF_tls_key: ${{ secrets.tls_key }}

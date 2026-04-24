@@ -1,8 +1,0 @@
-#/bin/bash
-
-tilt down
-kubectl delete pvc/typesense-pvc
-
-docker stop kind-control-plane
-docker stop kind-registry
-

@@ -21,15 +21,21 @@ variable "web_build_number" {
 }
 
 variable "typesense_api_key" {
-  type = string
+  type        = string
+  description = "Typesense admin API key. Set as a sensitive Terraform Cloud or CI variable."
+  sensitive   = true
 }
 
 variable "auth0_client_secret" {
-  type = string
+  type        = string
+  description = "Auth0 application client secret. Set as a sensitive Terraform Cloud or CI variable."
+  sensitive   = true
 }
 
 variable "auth0_secret" {
-  type = string
+  type        = string
+  description = "Auth0 session secret. Set as a sensitive Terraform Cloud or CI variable."
+  sensitive   = true
 }
 
 variable "auth0_domain" {

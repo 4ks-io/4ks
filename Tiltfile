@@ -21,29 +21,23 @@ k8s_yaml([
     # 'dev/deploy/jaeger.yaml'
 ])
 
-# API
-google_app_creds_path = 'dev/secrets/sbx-4ks-google-app-creds.json'
-local(
-    'if [ ! -f {path} ]; then echo "missing {path}; add the local Google service account JSON before starting api"; exit 1; fi'.format(path=google_app_creds_path),
-    quiet=True
+local_resource(
+    name='bootstrap (secrets)',
+    cmd='./dev/bootstrap-secrets.sh',
+    deps=[
+        'dev/bootstrap-secrets.sh',
+        'dev/secrets/local.env',
+        'dev/secrets/local.env.example',
+    ],
+    labels=['backend', 'web']
 )
-google_app_creds = str(read_file(google_app_creds_path))
-google_app_creds_yaml = '\n'.join(['    ' + line for line in google_app_creds.split('\n')])
-k8s_yaml(blob("""
-apiVersion: v1
-kind: Secret
-metadata:
-  name: api-google-app-creds
-stringData:
-  google-app-creds.json: |
-{google_app_creds_yaml}
-""".format(google_app_creds_yaml=google_app_creds_yaml)))
-k8s_resource(objects=['api-google-app-creds'], new_name='api-google-app-creds', labels=['backend'])
+
+# API
 k8s_resource(
     workload='api',
     port_forwards='0.0.0.0:5734:5000',
     labels=['backend'],
-    resource_deps=['api-google-app-creds', 'pubsub', 'firestore', 'typesense']
+    resource_deps=['bootstrap (secrets)', 'init (pubsub)', 'pubsub', 'firestore', 'typesense']
 )
 docker_build(
     '4ks-api',
@@ -95,7 +89,8 @@ local_resource('package_json', cmd='./apps/web/package_json.sh', deps=['pnpm-loc
 k8s_resource(
     workload='web',
     port_forwards='0.0.0.0:5736:3000',
-    labels=['web','next']
+    labels=['web','next'],
+    resource_deps=['bootstrap (secrets)']
 )
 docker_build(
     'web',

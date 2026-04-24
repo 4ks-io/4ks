@@ -21,6 +21,7 @@ jobs:
   #     gcp_api_token: ${{ secrets.GOOGLE_CREDENTIALS_DEV }}
   #     tf_api_token: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
   #     typesense_api_key: ${{ secrets.TYPESENSE_API_KEY_DEV }}
+  #     typesense_client_api_key: ${{ secrets.TYPESENSE_CLIENT_API_KEY_DEV }}
   #   with:
   #     environment: dev
   #     build_number: ${{ github.sha }}
@@ -37,6 +38,7 @@ jobs:
       gcp_api_token: ${{ secrets.GOOGLE_CREDENTIALS_PRD }}
       tf_api_token: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
       typesense_api_key: ${{ secrets.TYPESENSE_API_KEY_PRD }}
+      typesense_client_api_key: ${{ secrets.TYPESENSE_CLIENT_API_KEY_PRD }}
       auth0_secret: ${{ secrets.AUTH0_SECRET_PRD }}
       auth0_client_secret: ${{ secrets.AUTH0_CLIENT_SECRET_PRD }}
     with:
