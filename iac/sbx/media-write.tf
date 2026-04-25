@@ -3,7 +3,9 @@ resource "google_storage_bucket" "media_write" {
   location      = var.region
   force_destroy = true
 
-  uniform_bucket_level_access = false
+  // Prove the upload path works with uniform bucket-level access in SBX before
+  // promoting the same behavior change into the shared base environments.
+  uniform_bucket_level_access = true
 
   cors {
     origin = [
