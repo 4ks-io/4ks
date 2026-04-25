@@ -10,6 +10,19 @@ print("""
 Starting 4ks Services
 """.format(tiltfile=tiltfile_path))
 
+go_test_ignores = [
+    '**/*_test.go',
+]
+
+ts_unit_test_ignores = [
+    '**/*.test.ts',
+    '**/*.test.tsx',
+    '**/*.spec.ts',
+    '**/*.spec.tsx',
+    '**/__tests__',
+    '**/__tests__/**',
+]
+
 # RESOURCES
 k8s_yaml([
     'dev/deploy/api.yaml',
@@ -43,6 +56,7 @@ docker_build(
     '4ks-api',
     context='.',
     dockerfile='apps/api/Dockerfile.dev',
+    ignore=go_test_ignores,
     only=[
         'apps/api',
         'go.mod',
@@ -70,6 +84,7 @@ docker_build(
     'fetcher',
     context='.',
     dockerfile='apps/fetcher/Dockerfile.dev',
+    ignore=go_test_ignores,
     only=[
         'apps/fetcher',
         'libs/go'
@@ -96,6 +111,7 @@ docker_build(
     'web',
     context='.',
     dockerfile='apps/web/Dockerfile.dev',
+    ignore=ts_unit_test_ignores,
     only=[
         'apps/web',
         'libs/ts',
