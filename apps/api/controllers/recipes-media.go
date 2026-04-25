@@ -134,7 +134,7 @@ func (c *recipeController) GetRecipeMedia(ctx *gin.Context) {
 // @Security 		ApiKeyAuth
 func (c *recipeController) GetAdminRecipeMedias(ctx *gin.Context) {
 	recipeID := ctx.Param("id")
-	recipeMedias, err := c.recipeService.GetRecipeMedia(ctx, recipeID)
+	recipeMedias, err := c.recipeService.GetAdminRecipeMedias(ctx, recipeID)
 
 	if err == recipeService.ErrRecipeNotFound {
 		ctx.AbortWithError(http.StatusNotFound, err)

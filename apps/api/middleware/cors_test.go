@@ -85,4 +85,16 @@ func TestCorsMiddleware(t *testing.T) {
 			t.Fatalf("expected credentials header, got %q", got)
 		}
 	})
+
+	t.Run("vary headers are always present", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/example", nil)
+		rec := httptest.NewRecorder()
+
+		newRouter().ServeHTTP(rec, req)
+
+		values := rec.Header().Values("Vary")
+		if len(values) != 3 {
+			t.Fatalf("expected 3 vary headers, got %v", values)
+		}
+	})
 }

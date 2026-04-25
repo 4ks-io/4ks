@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -85,6 +86,50 @@ func TestAuthorizeFetcher(t *testing.T) {
 		})
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("replayed nonce is rejected", func(t *testing.T) {
+		router := gin.New()
+		store := newFetcherNonceStore()
+		router.POST("/api/_fetcher/recipes", authorizeFetcherWithSecret(secret, store, func() time.Time { return now }), func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
+
+		headers := fetchauth.BuildHeaders(secret, http.MethodPost, "api.4ks.io", "/api/_fetcher/recipes", body, now, "nonce-replayed")
+		req := func() *http.Request {
+			request := httptest.NewRequest(http.MethodPost, "/api/_fetcher/recipes", bytes.NewReader(body))
+			request.Host = "api.4ks.io"
+			request.Header.Set(fetchauth.HeaderTimestamp, headers.Timestamp)
+			request.Header.Set(fetchauth.HeaderNonce, headers.Nonce)
+			request.Header.Set(fetchauth.HeaderBodyHash, headers.BodyHash)
+			request.Header.Set(fetchauth.HeaderSignature, headers.Signature)
+			return request
+		}
+
+		first := httptest.NewRecorder()
+		router.ServeHTTP(first, req())
+		if first.Code != http.StatusOK {
+			t.Fatalf("expected first request to succeed, got %d", first.Code)
+		}
+
+		second := httptest.NewRecorder()
+		router.ServeHTTP(second, req())
+		if second.Code != http.StatusUnauthorized {
+			t.Fatalf("expected replay to be rejected, got %d", second.Code)
+		}
+	})
+
+	t.Run("body hash mismatch is rejected", func(t *testing.T) {
+		headers := fetchauth.BuildHeaders(secret, http.MethodPost, "api.4ks.io", "/api/_fetcher/recipes", body, now, "nonce-hash")
+		rec := makeRequest(map[string]string{
+			fetchauth.HeaderTimestamp: headers.Timestamp,
+			fetchauth.HeaderNonce:     headers.Nonce,
+			fetchauth.HeaderBodyHash:  strings.Repeat("a", len(headers.BodyHash)),
+			fetchauth.HeaderSignature: headers.Signature,
+		})
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", rec.Code)
 		}
 	})
 }

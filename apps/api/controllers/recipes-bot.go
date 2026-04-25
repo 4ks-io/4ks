@@ -152,7 +152,7 @@ func (c *recipeController) FetcherBotCreateRecipe(ctx *gin.Context) {
 
 	// update user event
 	e.Status = models.UserEventReady
-	if c.userService.UpdateUserEventByUserIDEventID(ctx, payload.UserID, &e); err != nil {
+	if _, err = c.userService.UpdateUserEventByUserIDEventID(ctx, payload.UserID, &e); err != nil {
 		e.Status = models.UserEventErrorState
 		e.Error = models.UserEventError{Message: err.Error()}
 		c.userService.UpdateUserEventByUserIDEventID(ctx, payload.UserID, &e)
