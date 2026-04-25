@@ -62,7 +62,7 @@ require (
 
 require (
 	cloud.google.com/go/firestore v1.22.0
-	github.com/GoogleCloudPlatform/functions-framework-go v1.8.0
+	github.com/GoogleCloudPlatform/functions-framework-go v1.9.2
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
