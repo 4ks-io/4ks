@@ -51,13 +51,6 @@ resource "google_project_iam_member" "artifactregistry_reader" {
   depends_on = [google_project_iam_member.event_receiving]
 }
 
-resource "google_project_iam_member" "bucket" {
-  project    = local.project
-  role       = google_project_iam_custom_role.bucket.name
-  member     = "serviceAccount:${google_service_account.media_upload.email}"
-  depends_on = [google_project_iam_member.artifactregistry_reader]
-}
-
 // Add the narrower bucket-scoped source permission before removing the older
 // project-wide custom role binding in a later phase.
 resource "google_storage_bucket_iam_member" "media_upload_source_admin" {
@@ -85,7 +78,8 @@ resource "google_project_iam_member" "datastore_reader" {
 
 resource "google_cloudfunctions2_function" "media_upload" {
   depends_on = [
-    google_project_iam_member.bucket,
+    google_storage_bucket_iam_member.media_upload_source_admin,
+    google_storage_bucket_iam_member.media_upload_distribution_admin,
     google_project_iam_member.event_receiving,
     google_project_iam_member.artifactregistry_reader,
   ]
