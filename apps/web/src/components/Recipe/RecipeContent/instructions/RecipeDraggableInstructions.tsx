@@ -1,9 +1,9 @@
 'use client';
 import React from 'react';
 import { models_Instruction } from '@4ks/api-fetch';
-import { DragDropContext, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Draggable } from '@hello-pangea/dnd';
 import { default as Droppable } from '@/components/StrictModeDroppable';
-import { DropResult } from 'react-beautiful-dnd';
+import { DropResult } from '@hello-pangea/dnd';
 import RecipeInstruction from './RecipeInstruction';
 
 type RecipeInstructionsProps = {

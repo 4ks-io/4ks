@@ -9,12 +9,12 @@ export class SystemService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
 
     /**
-     * healthcheck
-     * healthcheck
-     * @returns void
+     * Healthcheck
+     * Reports version and downstream dependency status. Development only.
+     * @returns any OK
      * @throws ApiError
      */
-    public getApiHealthcheck(): CancelablePromise<void> {
+    public getApiHealthcheck(): CancelablePromise<any> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/api/healthcheck',
@@ -23,27 +23,14 @@ export class SystemService {
 
     /**
      * Checks Readiness
-     * Check system readiness by probing downstream services such as the database.
+     * Shallow liveness probe. Always returns 200; use /api/healthcheck for dependency status.
      * @returns string OK
      * @throws ApiError
      */
-    public getApiReady(): CancelablePromise<string> {
+    public getApiReady(): CancelablePromise<Record<string, string>> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/api/ready',
-        });
-    }
-
-    /**
-     * Get API Version
-     * Get API Version
-     * @returns string OK
-     * @throws ApiError
-     */
-    public getApiVersion(): CancelablePromise<string> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/api/version',
         });
     }
 

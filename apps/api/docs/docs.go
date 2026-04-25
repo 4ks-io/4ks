@@ -167,26 +167,28 @@ const docTemplate = `{
         },
         "/api/healthcheck": {
             "get": {
-                "description": "healthcheck",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Reports version and downstream dependency status. Development only.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "System"
                 ],
-                "summary": "healthcheck",
-                "responses": {}
+                "summary": "Healthcheck",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/api/ready": {
             "get": {
-                "description": "Check system readiness by probing downstream services such as the database.",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Shallow liveness probe. Always returns 200; use /api/healthcheck for dependency status.",
                 "produces": [
                     "application/json"
                 ],
@@ -198,7 +200,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -997,29 +1002,6 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
-                    }
-                }
-            }
-        },
-        "/api/version": {
-            "get": {
-                "description": "Get API Version",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "System"
-                ],
-                "summary": "Get API Version",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 }
             }

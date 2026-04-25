@@ -1,6 +1,5 @@
 import { IRecipeContext } from './recipe-context-init';
 import { models_Recipe, models_RecipeRevision } from '@4ks/api-fetch';
-import diff from 'deep-diff';
 interface IAction {
   type: RecipeContextAction;
   payload?: any;
@@ -24,10 +23,7 @@ function getIsEditing(
   current: models_Recipe | undefined,
   recipe: models_Recipe | undefined
 ) {
-  const differences = diff(current, recipe);
-  return differences && Array.isArray(differences) && differences.length > 0
-    ? true
-    : false;
+  return JSON.stringify(current) !== JSON.stringify(recipe);
 }
 
 export function recipeContextReducer(

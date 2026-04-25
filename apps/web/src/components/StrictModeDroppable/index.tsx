@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Droppable, DroppableProps } from 'react-beautiful-dnd';
+import { Droppable, DroppableProps } from '@hello-pangea/dnd';
 
 // StrictModeDroppable.tsx
 // Credits to https://github.com/GiovanniACamacho and https://github.com/Meligy for the TypeScript version
-// Original post: https://github.com/atlassian/react-beautiful-dnd/issues/2399#issuecomment-1175638194
+// Original post: https://github.com/atlassian/@hello-pangea/dnd/issues/2399#issuecomment-1175638194
 
 export default function StrictModeDroppable({
   children,

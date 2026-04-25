@@ -479,28 +479,31 @@ paths:
       - Admin
   /api/healthcheck:
     get:
-      consumes:
-      - application/json
-      description: healthcheck
-      produces:
-      - application/json
-      responses: {}
-      summary: healthcheck
-      tags:
-      - System
-  /api/ready:
-    get:
-      consumes:
-      - application/json
-      description: Check system readiness by probing downstream services such as the
-        database.
+      description: Reports version and downstream dependency status. Development only.
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            type: string
+            additionalProperties: true
+            type: object
+      summary: Healthcheck
+      tags:
+      - System
+  /api/ready:
+    get:
+      description: Shallow liveness probe. Always returns 200; use /api/healthcheck
+        for dependency status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Checks Readiness
       tags:
       - System
@@ -999,21 +1002,6 @@ paths:
       summary: Returns username validity and availability
       tags:
       - Users
-  /api/version:
-    get:
-      consumes:
-      - application/json
-      description: Get API Version
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-      summary: Get API Version
-      tags:
-      - System
 securityDefinitions:
   ApiKeyAuth:
     in: header

@@ -1,4 +1,4 @@
-import { DropResult } from 'react-beautiful-dnd';
+import { DropResult } from '@hello-pangea/dnd';
 
 export function cloneList<T>(list: T | undefined): T {
   return Object.assign([], list) as T;
