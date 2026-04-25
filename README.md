@@ -69,6 +69,6 @@
 
 - Pull requests run secret scanning with Gitleaks against the PR commit range, so pre-existing historical leaks in old commits do not block unrelated changes.
 - Pull requests run Trivy for Dockerfile/container configuration and Terraform misconfiguration checks, plus OS-level base image scans for the API and web production images when those areas change.
-- Docker base images are pinned by tag and digest in repo-owned Dockerfiles. `.github/dependabot.yml` is configured to raise weekly updates for npm, Go modules, Docker, Docker Compose, Terraform, and GitHub Actions.
+- Docker base images are pinned by tag and digest in repo-owned Dockerfiles. Dependabot is currently disabled until the planned framework and dependency upgrade stories are completed.
 - Trivy exceptions must stay inline and explain intent with `# trivy:ignore:<RULE_ID> ...` on the exact resource being suppressed.
 - Gitleaks exceptions must go in [.gitleaks.toml](/code/4ks-io/4ks/.gitleaks.toml) using explicit allowlists scoped to the smallest possible path or rule. Do not add broad global ignores without a review comment in the PR explaining why.
