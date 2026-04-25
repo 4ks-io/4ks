@@ -4,8 +4,11 @@ package main
 import (
 	"bufio"
 	"context"
+	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	_ "4ks/apps/api/docs"
 
@@ -401,9 +404,18 @@ func main() {
 	AppendRoutes(&sysFlags, router, c, o)
 
 	addr := "0.0.0.0:" + utils.GetStrEnvVar("PORT", "5000")
-	if err := router.Run(addr); err != nil {
-		log.Fatal().Err(err).Msg("Error starting http server")
-	}
+	srv := &http.Server{Addr: addr, Handler: router}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("Error starting http server")
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Info().Msg("shutting down server")
 }
 
 // ReadWordsFromFile reads words from a file
