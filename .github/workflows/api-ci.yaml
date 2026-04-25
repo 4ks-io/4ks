@@ -2,7 +2,7 @@ name: api ci
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [ opened, synchronize, reopened, ready_for_review ]
     paths:
       - .github/workflows/**
       - go.mod
@@ -31,7 +31,9 @@ jobs:
           - module: .
             test_command: AUTH0_DOMAIN=example.auth0.com AUTH0_AUDIENCE=test go test ./...
           - module: apps/fetcher
-            test_command: API_FETCHER_PSK=01234567890123456789012345678901 API_ENDPOINT_URL=https://api.4ks.io/api/_fetcher/recipes PUBSUB_PROJECT_ID=test PUBSUB_TOPIC_ID=test go test ./...
+            test_command: API_FETCHER_PSK=01234567890123456789012345678901
+              API_ENDPOINT_URL=https://api.4ks.io/api/_fetcher/recipes
+              PUBSUB_PROJECT_ID=test PUBSUB_TOPIC_ID=test go test ./...
           - module: apps/media-upload
             test_command: go test ./...
           - module: utils/media-update
@@ -48,6 +50,28 @@ jobs:
       - name: Test ${{ matrix.module }}
         working-directory: ${{ matrix.module }}
         run: ${{ matrix.test_command }}
+
+  lint:
+    name: lint (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - .
+          - apps/fetcher
+          - apps/media-upload
+          - utils/media-update
+          - utils/recipe-search-refresh
+          - utils/recipe-update
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.work
+      - name: Lint ${{ matrix.module }}
+        working-directory: ${{ matrix.module }}
+        run: go tool revive -set_exit_status ./...
 
   govulncheck:
     name: govulncheck (${{ matrix.module }})
@@ -67,11 +91,9 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.work
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: Scan ${{ matrix.module }}
         working-directory: ${{ matrix.module }}
-        run: govulncheck ./...
+        run: go tool govulncheck ./...
 
   docker:
     name: container (${{ matrix.dockerfile }})
