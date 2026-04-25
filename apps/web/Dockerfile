@@ -6,6 +6,7 @@
 # WORKDIR /code
 # COPY /PACKAGE_JSON /code
 # COPY /pnpm* .
+# COPY /.pnpmfile.cjs .
 # RUN pnpm install --frozen-lockfile && rm -rf /code
 #   # output -> /root/.local/share/pnpm/store/v3
 
@@ -18,6 +19,7 @@ RUN npm install -g pnpm@10.28.0
 WORKDIR /code
 COPY /PACKAGE_JSON /code
 COPY /pnpm* .
+COPY /.pnpmfile.cjs .
 RUN pnpm install --frozen-lockfile
 
 COPY ./libs/reserved-words ./apps/web/public
