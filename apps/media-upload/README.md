@@ -50,3 +50,17 @@ curl localhost:8080 \
 gcloud config set project sbx-4ks
 gcloud storage ls
 gcloud storage ls --recursive gs://media.sbx.4ks.io/\*\*
+
+## Runtime config
+
+The media-upload function now loads config once during startup in `cmd/main.go`.
+
+Required variables:
+
+- `DISTRIBUTION_BUCKET`
+- `FIRESTORE_PROJECT_ID`
+
+Optional variables:
+
+- `IO_4KS_DEVELOPMENT`
+- `PORT`

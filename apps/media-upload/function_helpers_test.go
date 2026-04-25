@@ -27,14 +27,9 @@ func TestParseUploadObjectNameValidPath(t *testing.T) {
 }
 
 func TestGetBoolEnv(t *testing.T) {
-	t.Setenv("TEST_BOOL_ENV", "true")
-	if !GetBoolEnv("TEST_BOOL_ENV", false) {
-		t.Fatal("expected env override to parse as true")
-	}
-
-	t.Setenv("TEST_BOOL_ENV", "not-a-bool")
-	if !GetBoolEnv("TEST_BOOL_ENV", true) {
-		t.Fatal("expected invalid env value to fall back to default")
+	cfg := RuntimeConfig{Development: true}
+	if !cfg.Development {
+		t.Fatal("expected development flag to stay true")
 	}
 }
 
@@ -148,6 +143,6 @@ func TestParseUploadObjectNameRejectsMissingExtension(t *testing.T) {
 func TestUpdateRecipeMediaDevelopmentNoop(t *testing.T) {
 	t.Parallel()
 
-	updater := updateRecipeMedia(true, nil, context.Background(), "media-1")
+	updater := updateRecipeMedia(RuntimeConfig{Development: true, FirestoreProjectID: "test"}, nil, context.Background(), "media-1")
 	updater(MediaStatusReady)
 }

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"4ks/apps/api/utils"
 	"4ks/libs/go/fetchauth"
 	"bytes"
 	"crypto/sha256"
@@ -8,7 +9,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -54,13 +54,12 @@ func (s *fetcherNonceStore) Use(nonce string, now time.Time, ttl time.Duration) 
 var replayProtection = newFetcherNonceStore()
 
 // AuthorizeFetcher validates the request has been authorized to fetch.
-func AuthorizeFetcher() gin.HandlerFunc {
-	secret, ok := os.LookupEnv("API_FETCHER_PSK")
-	if !ok || secret == "" {
+func AuthorizeFetcher(cfg utils.FetcherConfig) gin.HandlerFunc {
+	if cfg.SharedSecret == "" {
 		log.Fatal().Msg("API_FETCHER_PSK required")
 	}
 
-	return authorizeFetcherWithSecret([]byte(secret), replayProtection, time.Now)
+	return authorizeFetcherWithSecret([]byte(cfg.SharedSecret), replayProtection, time.Now)
 }
 
 func authorizeFetcherWithSecret(secret []byte, nonces *fetcherNonceStore, nowFn func() time.Time) gin.HandlerFunc {

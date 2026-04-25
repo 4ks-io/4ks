@@ -43,3 +43,19 @@ The nonce cache is process-local, so replay protection is enforced per API
 instance. If this endpoint is scaled across multiple instances and stronger
 cross-instance replay guarantees are required, move nonce storage to a shared
 store with TTL semantics.
+
+## Runtime config
+
+The fetcher now loads runtime config once during startup in `cmd/main.go`.
+
+Required variables:
+
+- `API_ENDPOINT_URL`
+- `API_FETCHER_PSK`
+- `PUBSUB_PROJECT_ID`
+- `PUBSUB_TOPIC_ID`
+
+Optional variables:
+
+- `DEBUG`
+- `PORT`

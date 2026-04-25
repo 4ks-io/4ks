@@ -4,14 +4,15 @@ package main
 import (
 	"log"
 
-	_ "4ks.io/fetcher"
+	fetcher "4ks.io/fetcher"
 	"github.com/GoogleCloudPlatform/functions-framework-go/funcframework"
 )
 
 func main() {
-	// The server will run on port 5000
-	port := "5000"
-	if err := funcframework.Start(port); err != nil {
+	cfg := fetcher.MustLoadRuntimeConfig()
+	fetcher.Register(cfg)
+
+	if err := funcframework.Start(cfg.Port); err != nil {
 		log.Fatalf("funcframework.Start: %v\n", err)
 	}
 }

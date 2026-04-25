@@ -3,7 +3,6 @@ package middleware
 import (
 	"4ks/apps/api/utils"
 	"context"
-
 	"net/http"
 	"net/url"
 	"time"
@@ -13,11 +12,6 @@ import (
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-)
-
-var (
-	domain   = utils.GetEnvVarOrPanic("AUTH0_DOMAIN")
-	audience = utils.GetEnvVarOrPanic("AUTH0_AUDIENCE")
 )
 
 // CustomClaims contains custom data we want from the token.
@@ -70,11 +64,8 @@ func AppendCustomClaims() gin.HandlerFunc {
 }
 
 // EnforceJWT is a middleware that will check the validity of our JWT.
-// tr@ck: could this (already curriend) function be curried to pass in audience and domain?
-// see https://github.com/cool8sniper/gin-rest-gorm-rbac-sample/blob/master/middleware/jwt.go
-func EnforceJWT() func(next http.Handler) http.Handler {
-	// log.Debug().Str("domain", domain).Str("audience", audience).Msg("EnforceJWT")
-	issuerURL, err := url.Parse("https://" + domain + "/")
+func EnforceJWT(cfg utils.Auth0Config) func(next http.Handler) http.Handler {
+	issuerURL, err := url.Parse("https://" + cfg.Domain + "/")
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse the issuer url")
 		panic(err)
@@ -86,7 +77,7 @@ func EnforceJWT() func(next http.Handler) http.Handler {
 		provider.KeyFunc,
 		validator.RS256,
 		issuerURL.String(),
-		[]string{audience},
+		[]string{cfg.Audience},
 		validator.WithCustomClaims(
 			func() validator.CustomClaims {
 				return &CustomClaims{}

@@ -2,43 +2,48 @@ package tracing
 
 import (
 	"log"
-	"os"
 	"strings"
 
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
-	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
-	"go.opentelemetry.io/otel/trace"
-
-	"4ks/apps/api/utils"
-
-	// "go.opentelemetry.io/otel/attribute"
-
 	stdout "go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	resource "go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	service = "4ks-api"
+// Config contains tracing exporter settings loaded by the caller.
+type Config struct {
+	ExporterType       string
+	JaegerEndpoint     string
+	GoogleCloudProject string
+	ServiceName        string
+}
 
-// environment = "local"
-// port
-)
-
-func InitTracerProvider() *sdktrace.TracerProvider {
+// InitTracerProvider configures the process tracer provider once at startup.
+func InitTracerProvider(cfg Config) *sdktrace.TracerProvider {
 	var exporter sdktrace.SpanExporter
 	var err error
 
-	exporterType := strings.ToUpper(utils.GetStrEnvVar("EXPORTER_TYPE", "CONSOLE"))
+	if cfg.ServiceName == "" {
+		cfg.ServiceName = "4ks-api"
+	}
+
+	exporterType := strings.ToUpper(cfg.ExporterType)
+	if exporterType == "" {
+		exporterType = "CONSOLE"
+	}
 	switch exporterType {
 	case "GOOGLE":
-		projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-		exporter, err = texporter.New(texporter.WithProjectID(projectID))
+		exporter, err = texporter.New(texporter.WithProjectID(cfg.GoogleCloudProject))
 	case "JAEGER":
-		jaegerEndpoint := utils.GetStrEnvVar("OTEL_EXPORTER_JAEGER_ENDPOINT", "http://jaeger:14268/api/traces")
+		jaegerEndpoint := cfg.JaegerEndpoint
+		if jaegerEndpoint == "" {
+			jaegerEndpoint = "http://jaeger:14268/api/traces"
+		}
 		exporter, err = jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jaegerEndpoint)))
 	case "CONSOLE":
 		exporter, err = stdout.New(stdout.WithPrettyPrint())
@@ -63,7 +68,7 @@ func InitTracerProvider() *sdktrace.TracerProvider {
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(service),
+			semconv.ServiceNameKey.String(cfg.ServiceName),
 		)),
 	)
 

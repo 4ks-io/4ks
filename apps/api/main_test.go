@@ -68,8 +68,7 @@ func newTestControllers() *Controllers {
 
 func TestGetAPIVersion(t *testing.T) {
 	t.Run("defaults when version path is unset", func(t *testing.T) {
-		t.Setenv("VERSION_FILE_PATH", "")
-		if got := getAPIVersion(); got != "0.0.0" {
+		if got := getAPIVersion(""); got != "0.0.0" {
 			t.Fatalf("expected default version, got %q", got)
 		}
 	})
@@ -86,8 +85,7 @@ func TestGetAPIVersion(t *testing.T) {
 			t.Fatalf("Close: %v", err)
 		}
 
-		t.Setenv("VERSION_FILE_PATH", file.Name())
-		if got := getAPIVersion(); got != "1.2.3" {
+		if got := getAPIVersion(file.Name()); got != "1.2.3" {
 			t.Fatalf("expected file-backed version, got %q", got)
 		}
 	})
@@ -120,11 +118,12 @@ func TestReadWordsFromFile(t *testing.T) {
 
 func TestAppendRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	t.Setenv("API_FETCHER_PSK", "01234567890123456789012345678901")
 
 	makeRouter := func(development bool) *gin.Engine {
 		router := gin.New()
-		AppendRoutes(&utils.SystemFlags{Development: development}, router, newTestControllers(), &RouteOpts{})
+		cfg := utils.MinimalRuntimeConfig()
+		cfg.System.Development = development
+		AppendRoutes(cfg, router, newTestControllers())
 		return router
 	}
 

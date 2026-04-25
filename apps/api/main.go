@@ -46,11 +46,10 @@ type Controllers struct {
 }
 
 // getAPIVersion returns the api version stored in the VERSION file
-func getAPIVersion() string {
+func getAPIVersion(versionFilePath string) string {
 	version := "0.0.0"
-	if os.Getenv("VERSION_FILE_PATH") != "" {
-		path := utils.GetStrEnvVar("VERSION_FILE_PATH", "/VERSION")
-		v, err := os.ReadFile(path)
+	if versionFilePath != "" {
+		v, err := os.ReadFile(versionFilePath)
 		if err != nil {
 			panic(err)
 		}
@@ -70,23 +69,18 @@ func configureLogging() {
 	// log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 }
 
-// RouteOpts contains the paths for the router
-type RouteOpts struct {
-	SwaggerEnabled bool
-	SwaggerPrefix  string
-	StaticPath     string
-}
-
 // EnforceAuth enforces authentication
-func EnforceAuth(r *gin.RouterGroup) {
+func EnforceAuth(authConfig utils.Auth0Config, r *gin.RouterGroup) {
 	// JWT validation runs first so downstream middleware and handlers can rely on
 	// the authenticated identity stored in Gin context.
-	r.Use(adapter.Wrap(middleware.EnforceJWT()))
+	r.Use(adapter.Wrap(middleware.EnforceJWT(authConfig)))
 	r.Use(middleware.AppendCustomClaims())
 }
 
 // AppendRoutes appends routes to the router
-func AppendRoutes(sysFlags *utils.SystemFlags, r *gin.Engine, c *Controllers, o *RouteOpts) {
+func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers) {
+	sysFlags := cfg.SystemFlags()
+
 	// One shared store lets related routes reuse buckets consistently while
 	// keeping the limiter implementation local to this process.
 	rateLimitStore := middleware.NewLimiterStore()
@@ -166,9 +160,9 @@ func AppendRoutes(sysFlags *utils.SystemFlags, r *gin.Engine, c *Controllers, o 
 		}
 
 		// swagger
-		if value := o.SwaggerEnabled; value {
-			log.Info().Bool("enabled", value).Str("prefix", o.SwaggerPrefix).Msg("Swagger")
-			swaggerURL := ginSwagger.URL(o.SwaggerPrefix + "/swagger/doc.json") // The url pointing to API definition
+		if value := cfg.Features.SwaggerEnabled; value {
+			log.Info().Bool("enabled", value).Str("prefix", cfg.Routes.SwaggerURLPrefix).Msg("Swagger")
+			swaggerURL := ginSwagger.URL(cfg.Routes.SwaggerURLPrefix + "/swagger/doc.json") // The url pointing to API definition
 			api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler, swaggerURL))
 		}
 
@@ -185,7 +179,7 @@ func AppendRoutes(sysFlags *utils.SystemFlags, r *gin.Engine, c *Controllers, o 
 		fetcher := api.Group("/_fetcher")
 		{
 			// uses custom encrypted timestamp validation auth shceme using X-4ks-Auth header and pre-shared secret
-			fetcher.POST("/recipes", middleware.AuthorizeFetcher(), c.Recipe.FetcherBotCreateRecipe)
+			fetcher.POST("/recipes", middleware.AuthorizeFetcher(cfg.Fetcher), c.Recipe.FetcherBotCreateRecipe)
 		}
 
 		// recipes
@@ -200,7 +194,7 @@ func AppendRoutes(sysFlags *utils.SystemFlags, r *gin.Engine, c *Controllers, o 
 			recipes.GET("/author/:username", publicReadLimit, c.Recipe.GetRecipesByUsername)
 
 			// authenticated routes below this line
-			EnforceAuth(recipes)
+			EnforceAuth(cfg.Auth0, recipes)
 
 			recipes.POST("/", authenticatedWriteLimit, c.Recipe.CreateRecipe)
 			recipes.POST("/fetch", recipeFetchLimit, c.Recipe.FetchRecipe)
@@ -213,7 +207,7 @@ func AppendRoutes(sysFlags *utils.SystemFlags, r *gin.Engine, c *Controllers, o 
 		}
 
 		// authenticated routes below this line
-		EnforceAuth(api)
+		EnforceAuth(cfg.Auth0, api)
 
 		// user
 		user := api.Group("/user")
@@ -265,46 +259,28 @@ func main() {
 	var ctx = context.Background()
 	configureLogging()
 
-	// Validate HTTP-facing config before any external clients are initialized so
-	// bad CORS or proxy settings fail fast during startup.
-	httpSecurityConfig, err := utils.LoadHTTPSecurityConfig()
+	cfg, err := utils.LoadRuntimeConfig()
 	if err != nil {
-		log.Fatal().Err(err).Msg("invalid HTTP security configuration")
+		log.Fatal().Err(err).Msg("invalid runtime configuration")
 	}
 
-	// args
-	sysFlags := utils.SystemFlags{
-		Debug:         utils.GetStrEnvVar("GIN_MODE", "release") == "debug",
-		Development:   utils.GetBoolEnv("IO_4KS_DEVELOPMENT", false),
-		JaegerEnabled: utils.GetBoolEnv("JAEGER_ENABLED", false),
-	}
-
-	// search service configs
-	var tsURL = utils.GetEnvVarOrPanic("TYPESENSE_URL")
-	var tsKey = utils.GetEnvVarOrPanic("TYPESENSE_API_KEY")
-
-	// static service configs
-	var mediaFallbackURL = utils.GetEnvVarOrPanic("MEDIA_FALLBACK_URL")
-	var staticMediaBucket = utils.GetEnvVarOrPanic("STATIC_MEDIA_BUCKET")
-	var staticMediaFallbackPrefix = utils.GetEnvVarOrPanic("STATIC_MEDIA_FALLBACK_PREFIX")
-
-	// recipe service configs
-	var distributionBucket = utils.GetEnvVarOrPanic("DISTRIBUTION_BUCKET")
-	var uploadableBucket = utils.GetEnvVarOrPanic("UPLOADABLE_BUCKET")
-	var serviceAccountName = utils.GetEnvVarOrPanic("SERVICE_ACCOUNT_EMAIL")
-	var imageURL = utils.GetEnvVarOrPanic("MEDIA_IMAGE_URL")
+	sysFlags := cfg.SystemFlags()
 
 	// reserved words
-	reservedWordsFile := utils.GetStrEnvVar("RESERVED_WORDS_FILE", "./reserved-words")
-	reservedWords, err := ReadWordsFromFile(reservedWordsFile)
+	reservedWords, err := ReadWordsFromFile(cfg.Routes.ReservedWordsFile)
 	if err != nil {
 		panic(err)
 	}
 
 	// jaeger
-	if sysFlags.JaegerEnabled {
-		log.Info().Bool("enabled", sysFlags.JaegerEnabled).Msg("Jaeger")
-		tp := tracing.InitTracerProvider()
+	if cfg.Tracing.Enabled {
+		log.Info().Bool("enabled", cfg.Tracing.Enabled).Str("exporter", cfg.Tracing.ExporterType).Msg("Tracing")
+		tp := tracing.InitTracerProvider(tracing.Config{
+			ExporterType:       cfg.Tracing.ExporterType,
+			JaegerEndpoint:     cfg.Tracing.JaegerEndpoint,
+			GoogleCloudProject: cfg.Tracing.GoogleCloudProject,
+			ServiceName:        cfg.Tracing.ServiceName,
+		})
 		defer func() {
 			if err := tp.Shutdown(context.Background()); err != nil {
 				log.Error().Err(err).Msg("Error shutting down tracer provider")
@@ -320,58 +296,56 @@ func main() {
 	defer store.Close()
 
 	// firestore
-	firstoreProjectID := utils.GetEnvVarOrPanic("FIRESTORE_PROJECT_ID")
-	if value, ok := os.LookupEnv("FIRESTORE_EMULATOR_HOST"); ok {
-		log.Info().Msgf("Using Firestore Emulator: '%s'", value)
+	if cfg.Firestore.EmulatorHost != "" {
+		log.Info().Msgf("Using Firestore Emulator: '%s'", cfg.Firestore.EmulatorHost)
 	}
-	var fire, _ = firestore.NewClient(ctx, firstoreProjectID)
+	var fire, _ = firestore.NewClient(ctx, cfg.Firestore.ProjectID)
 	defer fire.Close()
 
 	// pubsub
-	pubsubProjectID := utils.GetEnvVarOrPanic("PUBSUB_PROJECT_ID")
-	if value, ok := os.LookupEnv("PUBSUB_EMULATOR_HOST"); ok {
-		log.Info().Msgf("Using PubSub Emulator: '%s'", value)
+	if cfg.PubSub.EmulatorHost != "" {
+		log.Info().Msgf("Using PubSub Emulator: '%s'", cfg.PubSub.EmulatorHost)
 	}
 	// create pubsub client
-	psub, err := pubsub.NewClient(ctx, pubsubProjectID)
+	psub, err := pubsub.NewClient(ctx, cfg.PubSub.ProjectID)
 	if err != nil {
-		log.Fatal().Err(err).Str("project", pubsubProjectID).Msg("failed to create pubsub client")
+		log.Fatal().Err(err).Str("project", cfg.PubSub.ProjectID).Msg("failed to create pubsub client")
 	}
 	defer psub.Close()
-	log.Debug().Str("project", pubsubProjectID).Msg("pubsub client created")
+	log.Debug().Str("project", cfg.PubSub.ProjectID).Msg("pubsub client created")
 
 	// pubsub options
 	reso := fetcherService.FetcherOpts{
-		ProjectID: pubsubProjectID,
-		TopicID:   "fetcher",
+		ProjectID: cfg.PubSub.ProjectID,
+		TopicID:   cfg.PubSub.FetcherTopic,
 	}
 
 	// typesense
-	ts := typesense.NewClient(typesense.WithServer(tsURL), typesense.WithAPIKey(tsKey))
+	ts := typesense.NewClient(typesense.WithServer(cfg.Typesense.URL), typesense.WithAPIKey(cfg.Typesense.APIKey))
 
 	// services
-	static := staticService.New(store, mediaFallbackURL, staticMediaBucket, staticMediaFallbackPrefix)
+	static := staticService.New(store, cfg.Static.FallbackURL, cfg.Static.Bucket, cfg.Static.FallbackPrefix)
 	search := searchService.New(ts)
 
 	v := validator.New()
 	user := userService.New(&sysFlags, fire, v, &reservedWords)
 	recipe := recipeService.New(&sysFlags, store, fire, v, &recipeService.RecipeServiceConfig{
-		DistributionBucket: distributionBucket,
-		UploadableBucket:   uploadableBucket,
-		ServiceAccountName: serviceAccountName,
-		ImageURL:           imageURL,
+		DistributionBucket: cfg.Recipe.DistributionBucket,
+		UploadableBucket:   cfg.Recipe.UploadableBucket,
+		ServiceAccountName: cfg.Recipe.ServiceAccountName,
+		ImageURL:           cfg.Recipe.ImageURL,
 	})
 	fetcher := fetcherService.New(ctx, &sysFlags, psub, reso, user, recipe, search, static)
 
 	// controllers
 	c := &Controllers{
 		System: controllers.NewSystemController(
-			getAPIVersion(),
+			getAPIVersion(cfg.Routes.VersionFilePath),
 			controllers.SystemControllerDeps{
 				DB:        controllers.NewFirestoreProber(fire),
 				Search:    controllers.NewTypesenseProber(ts),
 				Messaging: controllers.NewPubSubProber(psub, reso.TopicID),
-				Storage:   controllers.NewStorageProber(store, distributionBucket),
+				Storage:   controllers.NewStorageProber(store, cfg.Recipe.DistributionBucket),
 			},
 		),
 		Recipe: controllers.NewRecipeController(user, recipe, search, static, fetcher),
@@ -383,11 +357,11 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	// Trust forwarding headers only from the explicitly configured proxy layer.
-	if err := router.SetTrustedProxies(httpSecurityConfig.Proxy.TrustedCIDRs); err != nil {
+	if err := router.SetTrustedProxies(cfg.HTTP.Proxy.TrustedCIDRs); err != nil {
 		log.Fatal().Err(err).Msg("failed to configure trusted proxies")
 	}
 	router.Use(middleware.ErrorHandler)
-	router.Use(middleware.CorsMiddleware(httpSecurityConfig.CORS))
+	router.Use(middleware.CorsMiddleware(cfg.HTTP.CORS))
 	if sysFlags.Debug {
 		router.Use(middleware.DefaultStructuredLogger())
 	}
@@ -396,14 +370,9 @@ func main() {
 	prom := ginprometheus.NewPrometheus("gin")
 	prom.Use(router)
 
-	o := &RouteOpts{
-		SwaggerEnabled: utils.GetBoolEnv("SWAGGER_ENABLED", false),
-		SwaggerPrefix:  utils.GetStrEnvVar("SWAGGER_URL_PREFIX", ""),
-	}
+	AppendRoutes(cfg, router, c)
 
-	AppendRoutes(&sysFlags, router, c, o)
-
-	addr := "0.0.0.0:" + utils.GetStrEnvVar("PORT", "5000")
+	addr := "0.0.0.0:" + cfg.Routes.Port
 	srv := &http.Server{Addr: addr, Handler: router}
 
 	go func() {

@@ -5,158 +5,6 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// GetStrEnvVar
-// ---------------------------------------------------------------------------
-
-func TestGetStrEnvVarReturnsSetValue(t *testing.T) {
-	t.Setenv("TEST_STR", "hello")
-	if got := GetStrEnvVar("TEST_STR", "fallback"); got != "hello" {
-		t.Fatalf("expected %q, got %q", "hello", got)
-	}
-}
-
-func TestGetStrEnvVarReturnsFallbackWhenUnset(t *testing.T) {
-	if got := GetStrEnvVar("DEFINITELY_NOT_SET_XYZ", "fallback"); got != "fallback" {
-		t.Fatalf("expected fallback, got %q", got)
-	}
-}
-
-func TestGetStrEnvVarReturnsEmptyStringWhenSetToEmpty(t *testing.T) {
-	t.Setenv("TEST_EMPTY", "")
-	if got := GetStrEnvVar("TEST_EMPTY", "fallback"); got != "" {
-		t.Fatalf("expected empty string, got %q", got)
-	}
-}
-
-// ---------------------------------------------------------------------------
-// GetBoolEnv
-// ---------------------------------------------------------------------------
-
-func TestGetBoolEnvReturnsTrueForTrueString(t *testing.T) {
-	t.Setenv("TEST_BOOL", "true")
-	if !GetBoolEnv("TEST_BOOL", false) {
-		t.Fatal("expected true")
-	}
-}
-
-func TestGetBoolEnvReturnsFalseForFalseString(t *testing.T) {
-	t.Setenv("TEST_BOOL", "false")
-	if GetBoolEnv("TEST_BOOL", true) {
-		t.Fatal("expected false")
-	}
-}
-
-func TestGetBoolEnvAccepts1And0(t *testing.T) {
-	t.Setenv("TEST_BOOL_ONE", "1")
-	if !GetBoolEnv("TEST_BOOL_ONE", false) {
-		t.Fatal("expected 1 to parse as true")
-	}
-	t.Setenv("TEST_BOOL_ZERO", "0")
-	if GetBoolEnv("TEST_BOOL_ZERO", true) {
-		t.Fatal("expected 0 to parse as false")
-	}
-}
-
-func TestGetBoolEnvReturnsFallbackWhenUnset(t *testing.T) {
-	if GetBoolEnv("DEFINITELY_NOT_SET_BOOL_XYZ", true) != true {
-		t.Fatal("expected fallback true")
-	}
-	if GetBoolEnv("DEFINITELY_NOT_SET_BOOL_XYZ", false) != false {
-		t.Fatal("expected fallback false")
-	}
-}
-
-func TestGetBoolEnvReturnsFallbackForInvalidValue(t *testing.T) {
-	t.Setenv("TEST_BOOL_INVALID", "not-a-bool")
-	if GetBoolEnv("TEST_BOOL_INVALID", true) != true {
-		t.Fatal("expected fallback on invalid value")
-	}
-}
-
-// ---------------------------------------------------------------------------
-// GetEnvVarOrPanic
-// ---------------------------------------------------------------------------
-
-func TestGetEnvVarOrPanicReturnsValue(t *testing.T) {
-	t.Setenv("TEST_REQUIRED", "secret")
-	if got := GetEnvVarOrPanic("TEST_REQUIRED"); got != "secret" {
-		t.Fatalf("expected %q, got %q", "secret", got)
-	}
-}
-
-func TestGetEnvVarOrPanicPanicsWhenUnset(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic for unset env var")
-		}
-	}()
-	GetEnvVarOrPanic("DEFINITELY_NOT_SET_REQUIRED_XYZ")
-}
-
-func TestGetEnvVarOrPanicPanicsWhenEmpty(t *testing.T) {
-	t.Setenv("TEST_EMPTY_REQUIRED", "")
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic for empty env var")
-		}
-	}()
-	GetEnvVarOrPanic("TEST_EMPTY_REQUIRED")
-}
-
-// ---------------------------------------------------------------------------
-// GetCSVEnvVar
-// ---------------------------------------------------------------------------
-
-func TestGetCSVEnvVarReturnsFallbackWhenUnset(t *testing.T) {
-	fallback := []string{"a", "b"}
-	got := GetCSVEnvVar("DEFINITELY_NOT_SET_CSV_XYZ", fallback)
-	if len(got) != 2 || got[0] != "a" || got[1] != "b" {
-		t.Fatalf("expected fallback slice, got %v", got)
-	}
-}
-
-func TestGetCSVEnvVarReturnsFallbackCopy(t *testing.T) {
-	fallback := []string{"x"}
-	got := GetCSVEnvVar("DEFINITELY_NOT_SET_CSV_XYZ", fallback)
-	got[0] = "mutated"
-	if fallback[0] != "x" {
-		t.Fatal("GetCSVEnvVar must return a copy of the fallback, not the original")
-	}
-}
-
-func TestGetCSVEnvVarSplitsOnComma(t *testing.T) {
-	t.Setenv("TEST_CSV", "foo,bar,baz")
-	got := GetCSVEnvVar("TEST_CSV", nil)
-	if len(got) != 3 || got[0] != "foo" || got[1] != "bar" || got[2] != "baz" {
-		t.Fatalf("unexpected result: %v", got)
-	}
-}
-
-func TestGetCSVEnvVarTrimsSpaces(t *testing.T) {
-	t.Setenv("TEST_CSV_SPACES", "  foo , bar  , baz  ")
-	got := GetCSVEnvVar("TEST_CSV_SPACES", nil)
-	if len(got) != 3 || got[0] != "foo" || got[1] != "bar" || got[2] != "baz" {
-		t.Fatalf("expected trimmed values, got %v", got)
-	}
-}
-
-func TestGetCSVEnvVarIgnoresEmptySegments(t *testing.T) {
-	t.Setenv("TEST_CSV_EMPTY", "foo,,bar,")
-	got := GetCSVEnvVar("TEST_CSV_EMPTY", nil)
-	if len(got) != 2 || got[0] != "foo" || got[1] != "bar" {
-		t.Fatalf("expected empty segments to be dropped, got %v", got)
-	}
-}
-
-func TestGetCSVEnvVarReturnsSingleValue(t *testing.T) {
-	t.Setenv("TEST_CSV_ONE", "only")
-	got := GetCSVEnvVar("TEST_CSV_ONE", nil)
-	if len(got) != 1 || got[0] != "only" {
-		t.Fatalf("expected [only], got %v", got)
-	}
-}
-
-// ---------------------------------------------------------------------------
 // LoadHTTPSecurityConfig
 // ---------------------------------------------------------------------------
 
@@ -190,5 +38,62 @@ func TestLoadHTTPSecurityConfigRejectsInvalidProxyCIDR(t *testing.T) {
 
 	if _, err := LoadHTTPSecurityConfig(); err == nil {
 		t.Fatal("expected invalid proxy cidr to be rejected")
+	}
+}
+
+func TestMinimalRuntimeConfigProvidesValidTestDefaults(t *testing.T) {
+	cfg := MinimalRuntimeConfig()
+
+	if cfg.Auth0.Domain == "" || cfg.Fetcher.SharedSecret == "" || cfg.Routes.Port == "" {
+		t.Fatalf("expected minimal config to populate required fields, got %+v", cfg)
+	}
+}
+
+func TestLoadRuntimeConfig(t *testing.T) {
+	t.Setenv("GIN_MODE", "debug")
+	t.Setenv("IO_4KS_DEVELOPMENT", "true")
+	t.Setenv("SWAGGER_ENABLED", "true")
+	t.Setenv("SWAGGER_URL_PREFIX", "/api")
+	t.Setenv("PORT", "9000")
+	t.Setenv("RESERVED_WORDS_FILE", "/tmp/words")
+	t.Setenv("VERSION_FILE_PATH", "/tmp/version")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://www.4ks.io, https://dev.4ks.io")
+	t.Setenv("TRUSTED_PROXY_CIDRS", "10.0.0.0/8,127.0.0.1/32")
+	t.Setenv("AUTH0_DOMAIN", "example.auth0.com")
+	t.Setenv("AUTH0_AUDIENCE", "test-audience")
+	t.Setenv("TYPESENSE_URL", "http://typesense:8108")
+	t.Setenv("TYPESENSE_API_KEY", "typesense-key")
+	t.Setenv("MEDIA_FALLBACK_URL", "https://media.4ks.io/fallback.jpg")
+	t.Setenv("STATIC_MEDIA_BUCKET", "static-media")
+	t.Setenv("STATIC_MEDIA_FALLBACK_PREFIX", "fallback")
+	t.Setenv("DISTRIBUTION_BUCKET", "distribution")
+	t.Setenv("UPLOADABLE_BUCKET", "uploadable")
+	t.Setenv("SERVICE_ACCOUNT_EMAIL", "svc@example.com")
+	t.Setenv("MEDIA_IMAGE_URL", "https://media.4ks.io")
+	t.Setenv("FIRESTORE_PROJECT_ID", "firestore-project")
+	t.Setenv("FIRESTORE_EMULATOR_HOST", "localhost:8080")
+	t.Setenv("PUBSUB_PROJECT_ID", "pubsub-project")
+	t.Setenv("PUBSUB_EMULATOR_HOST", "localhost:8085")
+	t.Setenv("FETCHER_TOPIC_ID", "fetcher-custom")
+	t.Setenv("API_FETCHER_PSK", "01234567890123456789012345678901")
+	t.Setenv("JAEGER_ENABLED", "true")
+	t.Setenv("EXPORTER_TYPE", "jaeger")
+	t.Setenv("OTEL_EXPORTER_JAEGER_ENDPOINT", "http://jaeger:14268/api/traces")
+	t.Setenv("GOOGLE_CLOUD_PROJECT", "gcp-project")
+	t.Setenv("OTEL_SERVICE_NAME", "4ks-api-test")
+
+	cfg, err := LoadRuntimeConfig()
+	if err != nil {
+		t.Fatalf("expected runtime config to load, got error: %v", err)
+	}
+
+	if !cfg.System.Development || cfg.System.GinMode != "debug" {
+		t.Fatalf("unexpected system config: %+v", cfg.System)
+	}
+	if !cfg.Features.SwaggerEnabled || cfg.Routes.SwaggerURLPrefix != "/api" || cfg.Routes.Port != "9000" {
+		t.Fatalf("unexpected route config: %+v %+v", cfg.Features, cfg.Routes)
+	}
+	if cfg.PubSub.FetcherTopic != "fetcher-custom" || !cfg.Tracing.Enabled || cfg.Tracing.ExporterType != "JAEGER" {
+		t.Fatalf("unexpected typed runtime config: %+v %+v", cfg.PubSub, cfg.Tracing)
 	}
 }

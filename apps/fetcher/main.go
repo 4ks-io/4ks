@@ -5,44 +5,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
+	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
-
-	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
-	"github.com/cloudevents/sdk-go/v2/event"
 )
-
-var (
-	debug       bool
-	apiSecret   string
-	apiEndpoint string
-)
-
-func getMandatoryEnvVar(n string) string {
-	v, ok := os.LookupEnv(n)
-	if !ok || v == "" {
-		log.Fatal().Err(errors.New("missing env var")).Caller().Msgf("env var %s required", n)
-	}
-	return v
-}
-
-func init() {
-	debug = os.Getenv("DEBUG") == "false"
-
-	apiSecret = getMandatoryEnvVar("API_FETCHER_PSK")
-	apiEndpoint = getMandatoryEnvVar("API_ENDPOINT_URL")
-
-	n := getMandatoryEnvVar("PUBSUB_PROJECT_ID")
-	t := getMandatoryEnvVar("PUBSUB_TOPIC_ID")
-	functions.CloudEvent(fmt.Sprintf("projects/%s/topics/%s", n, t), fetcher)
-}
 
 // MessagePublishedData contains the full Pub/Sub message
 // See the documentation for more details:
@@ -65,93 +36,95 @@ type FetcherRequest struct {
 	UserEventID uuid.UUID `json:"userEventId"`
 }
 
-// fetcher consumes a CloudEvent message and extracts the Pub/Sub message.
-func fetcher(ctx context.Context, e event.Event) error {
-	// event type validation
-	if e.Type() != "google.cloud.pubsub.topic.v1.messagePublished" {
-		log.Error().Err(errors.New("unexpected cloud even type")).Caller().
-			Str("type", e.Type()).Msg("unexpected cloud even type")
+// newFetcherHandler consumes a CloudEvent message and extracts the Pub/Sub message.
+func newFetcherHandler(cfg RuntimeConfig) func(context.Context, event.Event) error {
+	return func(ctx context.Context, e event.Event) error {
+		// event type validation
+		if e.Type() != "google.cloud.pubsub.topic.v1.messagePublished" {
+			log.Error().Msg("unexpected cloud event type")
+			return fmt.Errorf("unexpected cloud event type: %s", e.Type())
+		}
+
+		// unmarshal event message
+		var msg MessagePublishedData
+		if err := e.DataAs(&msg); err != nil {
+			log.Error().Err(err).Caller().Msg("failed to unmarshal event data")
+			return fmt.Errorf("event.DataAs: %w", err)
+		}
+
+		// unmarshal data
+		var f FetcherRequest
+		if err := json.Unmarshal(msg.Message.Data, &f); err != nil {
+			log.Error().Err(err).Caller().Msg("failed to unmarshal msg data")
+			return fmt.Errorf("event.DataAs: %w", err)
+		}
+
+		validateCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		validatedURL, err := validateFetchURL(validateCtx, f.URL)
+		if err != nil {
+			return err
+		}
+
+		// scrape recipe
+		recipe, err := visit(ctx, cfg.Debug, validatedURL.Normalized)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to visit")
+		}
+
+		// format reponse data
+		dto := FetcherCreateRecipe{
+			UserID:      f.UserID,
+			UserEventID: f.UserEventID,
+			Recipe:      createRecipeDtoFromRecipe(recipe),
+		}
+
+		// PrintStruct(dto)
+		// tr@ck: validate dto and post errors to api
+
+		// marshall data to json
+		data, err := json.Marshal(dto)
+		if err != nil {
+			log.Error().Err(err).Caller().Msg("failed to marshal recipe")
+			return err
+		}
+
+		nonce, err := newNonce()
+		if err != nil {
+			log.Error().Err(err).Caller().Msg("failed to create auth nonce")
+			return err
+		}
+
+		// api callback
+		client := http.Client{}
+		req, err := http.NewRequest("POST", cfg.APIEndpoint, bytes.NewBuffer(data))
+		if err != nil {
+			log.Fatal().Err(err).Caller().Msg("failed to create api callback request")
+		}
+
+		// set headers
+		req.Header.Set("Content-Type", "application/json")
+		headers := buildSignatureHeaders([]byte(cfg.APISharedSecret), req.Method, req.URL.Host, req.URL.RequestURI(), data, time.Now(), nonce)
+		applySignatureHeaders(req, headers)
+
+		// perform request
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Error().Err(err).Caller().Msg("failed to perform api callback")
+			return err
+		}
+		defer resp.Body.Close()
+
+		// read response
+		_, err = io.ReadAll(resp.Body)
+		if err != nil {
+			log.Error().Err(err).Caller().Msg("failed read api callback response")
+			return err
+		}
+
+		return nil
 	}
-
-	// unmarshal event message
-	var msg MessagePublishedData
-	if err := e.DataAs(&msg); err != nil {
-		log.Error().Err(err).Caller().Msg("failed to unmarshal event data")
-		return fmt.Errorf("event.DataAs: %w", err)
-	}
-
-	// unmarshal data
-	var f FetcherRequest
-	if err := json.Unmarshal(msg.Message.Data, &f); err != nil {
-		log.Error().Err(err).Caller().Msg("failed to unmarshal msg data")
-		return fmt.Errorf("event.DataAs: %w", err)
-	}
-
-	validateCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	validatedURL, err := validateFetchURL(validateCtx, f.URL)
-	if err != nil {
-		return err
-	}
-
-	// scrape recipe
-	recipe, err := visit(ctx, debug, validatedURL.Normalized)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to visit")
-	}
-
-	// format reponse data
-	dto := FetcherCreateRecipe{
-		UserID:      f.UserID,
-		UserEventID: f.UserEventID,
-		Recipe:      createRecipeDtoFromRecipe(recipe),
-	}
-
-	// PrintStruct(dto)
-	// tr@ck: validate dto and post errors to api
-
-	// marshall data to json
-	data, err := json.Marshal(dto)
-	if err != nil {
-		log.Error().Err(err).Caller().Msg("failed to marshal recipe")
-		return err
-	}
-
-	nonce, err := newNonce()
-	if err != nil {
-		log.Error().Err(err).Caller().Msg("failed to create auth nonce")
-		return err
-	}
-
-	// api callback
-	client := http.Client{}
-	req, err := http.NewRequest("POST", apiEndpoint, bytes.NewBuffer(data))
-	if err != nil {
-		log.Fatal().Err(err).Caller().Msg("failed to create api callback request")
-	}
-
-	// set headers
-	req.Header.Set("Content-Type", "application/json")
-	headers := buildSignatureHeaders([]byte(apiSecret), req.Method, req.URL.Host, req.URL.RequestURI(), data, time.Now(), nonce)
-	applySignatureHeaders(req, headers)
-
-	// perform request
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Error().Err(err).Caller().Msg("failed to perform api callback")
-		return err
-	}
-	defer resp.Body.Close()
-
-	// read response
-	_, err = io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error().Err(err).Caller().Msg("failed read api callback response")
-		return err
-	}
-
-	return nil
 }
 
 // PrintStruct prints a struct

@@ -12,6 +12,43 @@ Production topology is `external HTTPS load balancer -> serverless NEG -> Cloud 
 Set `CORS_ALLOWED_ORIGINS` to explicit frontend origins only. Wildcards are rejected at startup because the API allows credentialed browser requests.
 Set `TRUSTED_PROXY_CIDRS` to the proxy layer that is expected to inject `X-Forwarded-For`; do not leave this implicit.
 
+The API now loads runtime configuration once at startup. Required variables are:
+
+- `AUTH0_AUDIENCE`
+- `AUTH0_DOMAIN`
+- `API_FETCHER_PSK`
+- `CORS_ALLOWED_ORIGINS`
+- `DISTRIBUTION_BUCKET`
+- `FIRESTORE_PROJECT_ID`
+- `MEDIA_FALLBACK_URL`
+- `MEDIA_IMAGE_URL`
+- `PUBSUB_PROJECT_ID`
+- `SERVICE_ACCOUNT_EMAIL`
+- `STATIC_MEDIA_BUCKET`
+- `STATIC_MEDIA_FALLBACK_PREFIX`
+- `TRUSTED_PROXY_CIDRS`
+- `TYPESENSE_API_KEY`
+- `TYPESENSE_URL`
+- `UPLOADABLE_BUCKET`
+
+Optional runtime variables include:
+
+- `EXPORTER_TYPE`
+- `FETCHER_TOPIC_ID`
+- `FIRESTORE_EMULATOR_HOST`
+- `GIN_MODE`
+- `GOOGLE_CLOUD_PROJECT`
+- `IO_4KS_DEVELOPMENT`
+- `JAEGER_ENABLED`
+- `OTEL_EXPORTER_JAEGER_ENDPOINT`
+- `OTEL_SERVICE_NAME`
+- `PORT`
+- `PUBSUB_EMULATOR_HOST`
+- `RESERVED_WORDS_FILE`
+- `SWAGGER_ENABLED`
+- `SWAGGER_URL_PREFIX`
+- `VERSION_FILE_PATH`
+
 Current application-level rate limits:
 
 - Public recipe read routes: 5 QPS, 120 QPM, 2000 QPH per IP.

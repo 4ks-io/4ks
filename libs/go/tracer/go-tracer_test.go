@@ -5,7 +5,7 @@ import (
 )
 
 func TestInitTracerProvider(t *testing.T) {
-	result := InitTracerProvider()
+	result := InitTracerProvider(Config{ExporterType: "CONSOLE", ServiceName: "tracer-test"})
 	if result == nil {
 		t.Error("Expected a tracer provider instance")
 	}
