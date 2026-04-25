@@ -3,7 +3,7 @@ module 4ks.io/fetcher
 go 1.26.2
 
 require (
-	github.com/GoogleCloudPlatform/functions-framework-go v1.8.0
+	github.com/GoogleCloudPlatform/functions-framework-go v1.9.2
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/gocolly/colly/v2 v2.1.0
 	github.com/google/go-cmp v0.7.0
@@ -12,7 +12,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/functions v1.15.2 // indirect
+	cloud.google.com/go/functions v1.19.3 // indirect
 	github.com/PuerkitoBio/goquery v1.5.1 // indirect
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/antchfx/htmlquery v1.2.3 // indirect
