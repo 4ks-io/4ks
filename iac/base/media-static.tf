@@ -2,7 +2,7 @@
 resource "google_storage_bucket" "media_static" {
   name          = "static.${local.web_domain}"
   location      = "us"
-  force_destroy = true
+  force_destroy = local.stage != "prd"
 
   uniform_bucket_level_access = true
 
