@@ -40,7 +40,7 @@
     "@types/react": "^18.2.8",
     "@types/react-beautiful-dnd": "^13.1.6",
     "@types/react-dom": "^18",
-    "eslint": "^8",
+    "eslint": "^10",
     "eslint-config-next": "14.2.35",
     "tsx": "^4.20.6",
     "typescript": "^5.1.3"
