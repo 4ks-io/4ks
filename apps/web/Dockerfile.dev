@@ -1,7 +1,7 @@
 FROM node:25.9.0-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS build
 LABEL org.opencontainers.image.source="https://github.com/4ks-io/4ks"
 RUN apk --no-cache add git bash
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.28.0
 
 WORKDIR /code
 COPY /PACKAGE_JSON /code

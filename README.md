@@ -2,9 +2,9 @@
 
 ## Ingredients
 
-- nodejs 18
-- pnpm >= 6.9.0 (using 7.1.7)
-- go >= 1.18
+- nodejs 25.9.0
+- pnpm 10.28.0 via Corepack
+- go 1.26.2
 - Docker
 - minikube or k3d (try minikube; fallback to k3d)
 - tilt
@@ -16,7 +16,8 @@
 1. Install and run k8s: `kind` or `minikube` or `k3d`
 1. Install `kubectl`
 1. Install [tilt](https://docs.tilt.dev/install.html)
-1. Install `nodejs`, `pnpm`, and `go`
+1. Install `nodejs` and `go`
+1. Enable the pinned pnpm version with Corepack: `corepack enable && corepack prepare pnpm@10.28.0 --activate`
 1. Install swaggo/swag \
    `go install github.com/swaggo/swag/cmd/swag@v1.8.12`
 
