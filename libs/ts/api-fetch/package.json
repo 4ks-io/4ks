@@ -12,7 +12,7 @@
     "fetch-n-build": "pnpm run gogen && pnpm run codegen && pnpm run build"
   },
   "devDependencies": {
-    "openapi-typescript-codegen": "^0.22.0",
+    "openapi-typescript-codegen": "^0.30.0",
     "rimraf": "^3.0.2"
   }
 }
