@@ -2,46 +2,43 @@ name: 'infra ci'
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - iac/**
+      - .github/workflows/**
 
-env:
-  GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-  TF_TOKEN_APP_TERRAFORM_IO: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
-  TF_WORKSPACE: app-dev-us-east
+permissions:
+  contents: read
 
 jobs:
-  terraform:
-    name: 'Terraform'
+  fmt:
+    name: terraform fmt
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
+      - name: Terraform Format
+        run: terraform fmt -check -recursive iac
+
+  validate:
+    name: terraform validate (${{ matrix.directory }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory:
+          - iac/app
+          - iac/base
+          - iac/core
+          - iac/eng
+          - iac/sbx
     defaults:
       run:
-        working-directory: iac/app
+        working-directory: ${{ matrix.directory }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: terraform
-        uses: hashicorp/setup-terraform@v4
-        # with:
-        # terraform_version: 0.13.0:
-        # cli_config_credentials_token: ${{ secrets.DEV_TF_SVC_ACCOUNT }}
-
-      - name: Terraform Format
-        id: fmt
-        run: terraform fmt -check
-
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
       - name: Terraform Init
-        id: init
-        run: terraform init
-
+        run: terraform init -backend=false -input=false -no-color
       - name: Terraform Validate
-        id: validate
         run: terraform validate -no-color
-
-      - name: Terraform Plan
-        id: plan
-        if: github.event_name == 'pull_request'
-        run: terraform plan -no-color -input=false
-        continue-on-error: false

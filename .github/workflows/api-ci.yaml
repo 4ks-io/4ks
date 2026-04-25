@@ -1,16 +1,87 @@
 name: api ci
+
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
-      - (workspace).json
-      - go*
+      - .github/workflows/**
+      - go.mod
+      - go.sum
+      - go.work
+      - go.work.sum
       - apps/api/**
+      - apps/fetcher/**
+      - apps/media-upload/**
       - libs/go/**
+      - libs/reserved-words/**
+      - utils/**
+      - apps/api/Dockerfile*
+
+permissions:
+  contents: read
 
 jobs:
-  docker:
+  go-test:
+    name: go test (${{ matrix.module }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: .
+            test_command: AUTH0_DOMAIN=example.auth0.com AUTH0_AUDIENCE=test go test ./...
+          - module: apps/fetcher
+            test_command: API_FETCHER_PSK=01234567890123456789012345678901 API_ENDPOINT_URL=https://api.4ks.io/api/_fetcher/recipes PUBSUB_PROJECT_ID=test PUBSUB_TOPIC_ID=test go test ./...
+          - module: apps/media-upload
+            test_command: go test ./...
+          - module: utils/media-update
+            test_command: go test ./...
+          - module: utils/recipe-search-refresh
+            test_command: go test ./...
+          - module: utils/recipe-update
+            test_command: go test ./...
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.work
+      - name: Test ${{ matrix.module }}
+        working-directory: ${{ matrix.module }}
+        run: ${{ matrix.test_command }}
+
+  govulncheck:
+    name: govulncheck (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - .
+          - apps/fetcher
+          - apps/media-upload
+          - utils/media-update
+          - utils/recipe-search-refresh
+          - utils/recipe-update
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.work
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Scan ${{ matrix.module }}
+        working-directory: ${{ matrix.module }}
+        run: govulncheck ./...
+
+  docker:
+    name: container (${{ matrix.dockerfile }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile:
+          - ./apps/api/Dockerfile
+          - ./apps/api/Dockerfile.ci
     steps:
       - uses: actions/checkout@v6
       - name: Set up Docker Buildx
@@ -20,7 +91,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ./
-          file: ./apps/api/Dockerfile.ci
+          file: ${{ matrix.dockerfile }}
           builder: ${{ steps.buildx.outputs.name }}
           push: false
           # tags: 4ks/api-ci:latest

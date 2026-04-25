@@ -7,10 +7,10 @@
     "pnpm": ">= 6.9.0"
   },
   "scripts": {
-    "lint:api": "revive apps/api/...",
-    "lint:media-upload": "revive apps/media-upload/...",
-    "lint:web": "eslint apps/web",
-    "lint": "npm-run-all lint:api lint:media-upload lint:web",
+    "lint:api": "go tool revive -set_exit_status ./apps/api/...",
+    "lint:media-upload": "go tool revive -set_exit_status ./apps/media-upload/...",
+    "lint:web": "pnpm --filter @4ks/web lint",
+    "lint": "pnpm run lint:web",
     "swag:api": "go tool swag init --parseDependency --parseInternal --parseDepth 1 -d apps/api/ -o apps/api/docs",
     "swag:web": "pnpm --filter @4ks/api-fetch fetch-n-build",
     "swag": "pnpm run swag:api && pnpm run swag:web",
