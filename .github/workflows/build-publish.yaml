@@ -15,15 +15,18 @@ on:
         description: 'github run tag'
         required: true
         type: string
-    secrets:
-      gcp_api_token:
+      workload_identity_provider:
+        description: 'GCP Workload Identity Provider resource name'
         required: true
+        type: string
+      service_account:
+        description: 'GCP service account email to impersonate'
+        required: true
+        type: string
 
 jobs:
   api:
     uses: ./.github/workflows/build-container.yaml
-    secrets:
-      gcp_api_token: ${{ secrets.gcp_api_token }}
     with:
       app_name: api
       # environment: ${{ inputs.environment }}
@@ -31,10 +34,10 @@ jobs:
       gcp_registry: us-east4-docker.pkg.dev
       build_number: ${{ inputs.build_number }}
       run_tag: ${{ inputs.run_tag }}
+      workload_identity_provider: ${{ inputs.workload_identity_provider }}
+      service_account: ${{ inputs.service_account }}
   web:
     uses: ./.github/workflows/build-container.yaml
-    secrets:
-      gcp_api_token: ${{ secrets.gcp_api_token }}
     with:
       app_name: web
       # environment: ${{ inputs.environment }}
@@ -42,3 +45,5 @@ jobs:
       gcp_registry: us-east4-docker.pkg.dev
       build_number: ${{ inputs.build_number }}
       run_tag: ${{ inputs.run_tag }}
+      workload_identity_provider: ${{ inputs.workload_identity_provider }}
+      service_account: ${{ inputs.service_account }}

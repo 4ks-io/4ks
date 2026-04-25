@@ -27,15 +27,23 @@ on:
         description: 'github run tag'
         required: true
         type: string
-    secrets:
-      gcp_api_token:
+      workload_identity_provider:
+        description: 'GCP Workload Identity Provider resource name'
         required: true
+        type: string
+      service_account:
+        description: 'GCP service account email to impersonate'
+        required: true
+        type: string
 
 jobs:
   build:
     name: container
     runs-on: ubuntu-latest
     # environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
       # checkout
       - uses: actions/checkout@v6
@@ -44,8 +52,8 @@ jobs:
       - name: GCP Auth
         uses: google-github-actions/auth@v3
         with:
-          project_id: ${{ inputs.gcp_project_name }}
-          credentials_json: ${{ secrets.gcp_api_token }}
+          workload_identity_provider: ${{ inputs.workload_identity_provider }}
+          service_account: ${{ inputs.service_account }}
       # cloud sdk
       - name: GCP Cloud SDK
         uses: google-github-actions/setup-gcloud@v3
