@@ -77,6 +77,15 @@ resource "google_pubsub_topic_iam_member" "api_fetcher_publisher" {
   member  = "serviceAccount:${google_service_account.api.email}"
 }
 
+// API startup validates the topic with Topic.Exists(), which requires
+// pubsub.topics.get in addition to publish permission.
+resource "google_pubsub_topic_iam_member" "api_fetcher_viewer" {
+  project = local.project
+  topic   = google_pubsub_topic.fetcher.name
+  role    = "roles/pubsub.viewer"
+  member  = "serviceAccount:${google_service_account.api.email}"
+}
+
 # service
 resource "google_cloud_run_v2_service" "api" {
   name     = "api"
