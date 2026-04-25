@@ -7,7 +7,10 @@ resource "google_storage_bucket" "media_static" {
   uniform_bucket_level_access = true
 
   cors {
-    origin          = ["*"]
+    origin = compact([
+      terraform.workspace == "base-dev-us-east" ? "https://local.4ks.io" : "",
+      "https://${local.www_domain}",
+    ])
     method          = ["GET"]
     response_header = ["*"]
     max_age_seconds = 3600
