@@ -51,3 +51,21 @@ resource "google_project_iam_member" "bucket" {
   member     = "serviceAccount:${google_service_account.media_upload.email}"
   depends_on = [google_project_iam_member.datastore_reader]
 }
+
+// Add the narrower bucket-scoped source permission before removing the older
+// project-wide custom role binding in a later phase.
+resource "google_storage_bucket_iam_member" "media_upload_source_admin" {
+  bucket     = google_storage_bucket.media_write.name
+  role       = "roles/storage.objectAdmin"
+  member     = "serviceAccount:${google_service_account.media_upload.email}"
+  depends_on = [google_project_iam_member.datastore_reader]
+}
+
+// The upload function also needs object-level access on the processed-media
+// bucket so it can write resized variants during the staged IAM migration.
+resource "google_storage_bucket_iam_member" "media_upload_distribution_admin" {
+  bucket     = google_storage_bucket.media_read.name
+  role       = "roles/storage.objectAdmin"
+  member     = "serviceAccount:${google_service_account.media_upload.email}"
+  depends_on = [google_project_iam_member.datastore_reader]
+}

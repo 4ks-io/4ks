@@ -58,6 +58,31 @@ data "google_iam_policy" "api_token_creator" {
   }
 }
 
+// Add the narrower upload-bucket grant before removing the older project-wide
+// custom storage role in a later phase.
+resource "google_storage_bucket_iam_member" "api_media_write_creator" {
+  bucket = data.google_storage_bucket.media_write.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${google_service_account.api.email}"
+}
+
+// The API reads fallback media metadata from the static bucket, so add a
+// bucket-scoped viewer grant before tightening broader storage access.
+resource "google_storage_bucket_iam_member" "api_media_static_viewer" {
+  bucket = data.google_storage_bucket.media_static.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.api.email}"
+}
+
+// Add the topic-scoped publisher grant first; keep the broader Pub/Sub role in
+// place until fetch publishing has been revalidated in runtime environments.
+resource "google_pubsub_topic_iam_member" "api_fetcher_publisher" {
+  project = local.project
+  topic   = google_pubsub_topic.fetcher.name
+  role    = "roles/pubsub.publisher"
+  member  = "serviceAccount:${google_service_account.api.email}"
+}
+
 # service
 resource "google_cloud_run_v2_service" "api" {
   name     = "api"
