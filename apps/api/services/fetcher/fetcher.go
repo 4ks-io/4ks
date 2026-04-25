@@ -53,9 +53,11 @@ func New(ctx context.Context, sysFlags *utils.SystemFlags, client *pubsub.Client
 
 	// check if topic exists
 	ok, err := t.Exists(ctx)
-	if err != nil || !ok {
-		log.Error().Err(err).Str("project", reso.ProjectID).Str("topic", reso.TopicID).Msg("failed to connect to topic")
-		panic(err)
+	if err != nil {
+		log.Fatal().Err(err).Str("project", reso.ProjectID).Str("topic", reso.TopicID).Msg("failed to check fetcher topic")
+	}
+	if !ok {
+		log.Fatal().Str("project", reso.ProjectID).Str("topic", reso.TopicID).Msg("fetcher topic not found — run init-pubsub.sh")
 	}
 
 	// create sender

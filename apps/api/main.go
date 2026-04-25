@@ -71,7 +71,6 @@ func configureLogging() {
 type RouteOpts struct {
 	SwaggerEnabled bool
 	SwaggerPrefix  string
-	Version        string
 	StaticPath     string
 }
 
@@ -150,8 +149,10 @@ func AppendRoutes(sysFlags *utils.SystemFlags, r *gin.Engine, c *Controllers, o 
 
 	// system
 	r.GET("/api/ready", c.System.CheckReadiness)
-	r.GET("/api/healthcheck", c.System.Healthcheck)
-	r.GET("/api/version", c.System.GetAPIVersion(o.Version))
+	// /api/healthcheck is development-only; block this path at the GCP load balancer in production.
+	if sysFlags.Development {
+		r.GET("/api/healthcheck", c.System.Healthcheck)
+	}
 
 	// api
 	api := r.Group("/api")
@@ -361,7 +362,15 @@ func main() {
 
 	// controllers
 	c := &Controllers{
-		System: controllers.NewSystemController(),
+		System: controllers.NewSystemController(
+			getAPIVersion(),
+			controllers.SystemControllerDeps{
+				DB:        controllers.NewFirestoreProber(fire),
+				Search:    controllers.NewTypesenseProber(ts),
+				Messaging: controllers.NewPubSubProber(psub, reso.TopicID),
+				Storage:   controllers.NewStorageProber(store, distributionBucket),
+			},
+		),
 		Recipe: controllers.NewRecipeController(user, recipe, search, static, fetcher),
 		User:   controllers.NewUserController(user),
 		Search: controllers.NewSearchController(search),
@@ -387,7 +396,6 @@ func main() {
 	o := &RouteOpts{
 		SwaggerEnabled: utils.GetBoolEnv("SWAGGER_ENABLED", false),
 		SwaggerPrefix:  utils.GetStrEnvVar("SWAGGER_URL_PREFIX", ""),
-		Version:        getAPIVersion(),
 	}
 
 	AppendRoutes(&sysFlags, router, c, o)
