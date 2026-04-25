@@ -3,7 +3,9 @@ resource "google_storage_bucket" "media_write" {
   location      = "us"
   force_destroy = local.stage != "prd"
 
-  uniform_bucket_level_access = false
+  // SBX upload validation passed with uniform bucket-level access enabled, so
+  // promote the same bucket-level IAM model into the shared environments.
+  uniform_bucket_level_access = true
 
   cors {
     origin = compact([
