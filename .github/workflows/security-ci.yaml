@@ -1,0 +1,149 @@
+name: security ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api_container: ${{ steps.filter.outputs.api_container }}
+      web_container: ${{ steps.filter.outputs.web_container }}
+      container_config: ${{ steps.filter.outputs.container_config }}
+      iac: ${{ steps.filter.outputs.iac }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api_container:
+              - 'apps/api/**'
+              - 'libs/go/**'
+              - 'go.mod'
+              - 'go.sum'
+              - 'go.work'
+              - 'go.work.sum'
+              - 'apps/api/Dockerfile'
+            web_container:
+              - 'apps/web/**'
+              - 'libs/ts/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'apps/web/Dockerfile'
+            container_config:
+              - 'apps/**/Dockerfile*'
+              - 'dev/apps/nginx/Dockerfile'
+              - 'docker-compose.yml'
+            iac:
+              - 'iac/**'
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Gitleaks
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo" \
+            -w /repo \
+            ghcr.io/gitleaks/gitleaks:v8.30.1 \
+            git \
+            --no-banner \
+            --redact \
+            --config .gitleaks.toml \
+            --log-opts "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+
+  container-config:
+    needs: changes
+    if: needs.changes.outputs.container_config == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Trivy container config scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: config
+          scan-ref: .
+          scanners: misconfig
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          skip-version-check: true
+          skip-dirs: iac,ignore
+          skip-files: apps/api/Dockerfile.dev,apps/fetcher/Dockerfile.dev,apps/web/Dockerfile.dev
+
+  api-image:
+    needs: changes
+    if: needs.changes.outputs.api_container == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build api image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./apps/api/Dockerfile
+          load: true
+          tags: 4ks-api-security:${{ github.sha }}
+      - name: Trivy api base image scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: image
+          image-ref: 4ks-api-security:${{ github.sha }}
+          scanners: vuln
+          vuln-type: os
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          skip-version-check: true
+
+  web-image:
+    needs: changes
+    if: needs.changes.outputs.web_container == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: PACKAGE_JSON hack
+        run: ./apps/web/package_json.sh
+      - name: Build web image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./apps/web/Dockerfile
+          load: true
+          tags: 4ks-web-security:${{ github.sha }}
+      - name: Trivy web base image scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: image
+          image-ref: 4ks-web-security:${{ github.sha }}
+          scanners: vuln
+          vuln-type: os
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          skip-version-check: true
+
+  iac:
+    needs: changes
+    if: needs.changes.outputs.iac == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Trivy IaC scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: config
+          scan-ref: iac
+          scanners: misconfig
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          skip-version-check: true

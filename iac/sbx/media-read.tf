@@ -26,5 +26,6 @@ resource "google_storage_bucket" "media_read" {
 resource "google_storage_bucket_iam_member" "media_read_viewer" {
   bucket = google_storage_bucket.media_read.name
   role   = "roles/storage.objectViewer"
+  # trivy:ignore:AVD-GCP-0001 Sandbox media read bucket is intentionally public.
   member = "allUsers"
 }

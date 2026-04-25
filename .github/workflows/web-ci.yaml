@@ -16,10 +16,6 @@ jobs:
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v4
-      - name: Pull Latest Alpine Node
-        run: docker pull node:18-alpine
-      - name: Pull Latest Alpine Go
-        run: docker pull golang:1.20-alpine
       - name: Build
         uses: docker/build-push-action@v7
         with:

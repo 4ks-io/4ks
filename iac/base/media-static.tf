@@ -20,6 +20,7 @@ resource "google_storage_bucket" "media_static" {
 resource "google_storage_bucket_iam_member" "media_static_viewer" {
   bucket = google_storage_bucket.media_static.name
   role   = "roles/storage.objectViewer"
+  # trivy:ignore:AVD-GCP-0001 Static site assets are intentionally world-readable.
   member = "allUsers"
 }
 

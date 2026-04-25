@@ -1,4 +1,5 @@
-FROM golang:1.26.2-alpine AS build
+FROM golang:1.26.2-alpine@sha256:f85330846cde1e57ca9ec309382da3b8e6ae3ab943d2739500e08c86393a21b1 AS build
+LABEL org.opencontainers.image.source="https://github.com/4ks-io/4ks"
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app

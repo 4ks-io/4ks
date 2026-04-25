@@ -1,4 +1,5 @@
-FROM nginx:mainline-alpine
+FROM nginx:mainline-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+LABEL org.opencontainers.image.source="https://github.com/4ks-io/4ks"
 
 RUN chmod -R a+w /var/cache/nginx/ \
         && cat > /var/run/nginx.pid \

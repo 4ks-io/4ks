@@ -10,7 +10,8 @@
 #   # output -> /root/.local/share/pnpm/store/v3
 
 # stage: build
-FROM node:25.9.0-alpine AS build
+FROM node:25.9.0-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS build
+LABEL org.opencontainers.image.source="https://github.com/4ks-io/4ks"
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 RUN npm install -g pnpm
 
@@ -37,7 +38,8 @@ RUN npx next build
 # CMD [ "npm", "run", "start" ]
 
 # runtime
-FROM node:25.9.0-alpine
+FROM node:25.9.0-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4
+LABEL org.opencontainers.image.source="https://github.com/4ks-io/4ks"
 RUN mkdir /home/appuser && chmod 777 /home/appuser
 USER appuser
 
