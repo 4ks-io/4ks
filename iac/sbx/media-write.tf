@@ -6,9 +6,10 @@ resource "google_storage_bucket" "media_write" {
   uniform_bucket_level_access = false
 
   cors {
-    // should be google_cloudfunctions2_function.media_upload.service_config[0].uri
-    # origin = ["https://local.4ks.io", "https://media-upload-*.a.run.app"]
-    origin          = ["*"]
+    origin = [
+      "https://local.4ks.io",
+      "https://${local.web_domain}",
+    ]
     method          = ["PUT"]
     response_header = ["*"]
     max_age_seconds = 3600
