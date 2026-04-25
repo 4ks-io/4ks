@@ -118,6 +118,7 @@ resource "google_cloudfunctions2_function" "media_upload" {
       DISTRIBUTION_BUCKET  = google_storage_bucket.media_read.name
       FIRESTORE_PROJECT_ID = "${var.stage}-${local.org}"
       IO_4KS_DEVELOPMENT = "true"
+      LOG_EXECUTION_ID  = "true"
     }
   }
 

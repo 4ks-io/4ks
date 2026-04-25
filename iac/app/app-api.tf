@@ -23,12 +23,6 @@ resource "google_project_iam_member" "firestore_service_agent" {
   member  = "serviceAccount:${google_service_account.api.email}"
 }
 
-resource "google_project_iam_member" "pubsub_service_agent" {
-  project = local.project
-  role    = "roles/pubsub.editor"
-  member  = "serviceAccount:${google_service_account.api.email}"
-}
-
 resource "google_project_iam_custom_role" "api" {
   role_id     = "cloudRunAPI"
   title       = "Cloud Run API"

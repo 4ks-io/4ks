@@ -102,6 +102,7 @@ resource "google_cloudfunctions2_function" "fetcher" {
       PUBSUB_TOPIC_ID   = google_pubsub_topic.fetcher.name
       API_ENDPOINT_URL  = "${google_cloud_run_v2_service.api.uri}/api/_fetcher/recipes"
       API_FETCHER_PSK   = data.google_secret_manager_secret_version.api_fetcher_psk.secret_data
+      LOG_EXECUTION_ID  = "true"
     }
 
     # ingress_settings               = "ALLOW_ALL"

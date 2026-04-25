@@ -40,6 +40,7 @@ resource "google_cloudfunctions2_function" "media_upload" {
     environment_variables = {
       DISTRIBUTION_BUCKET  = data.google_storage_bucket.media_read.name
       FIRESTORE_PROJECT_ID = "${local.stage}-${local.org}"
+      LOG_EXECUTION_ID  = "true"
     }
   }
 
