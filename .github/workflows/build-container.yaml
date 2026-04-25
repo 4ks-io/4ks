@@ -70,8 +70,8 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: .
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ inputs.app_name }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.app_name }}
           build-args: |
             VERSION=${{ inputs.build_number }}
           file: ./apps/${{ inputs.app_name }}/Dockerfile
