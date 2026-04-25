@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	cloud.google.com/go/firestore v1.22.0
-	github.com/rs/zerolog v1.31.0
+	github.com/rs/zerolog v1.35.1
 	github.com/typesense/typesense-go v0.6.2
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -23,8 +23,8 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.14 // indirect
 	github.com/googleapis/gax-go/v2 v2.21.0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/sony/gobreaker v0.5.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect
