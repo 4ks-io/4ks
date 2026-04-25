@@ -18,27 +18,28 @@ jobs:
       workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       service_account: ${{ vars.GCP_BUILD_SERVICE_ACCOUNT }}
 
-  dev:
-    needs: build
-    uses: ./.github/workflows/run-terraform.yaml
-    secrets:
-      tf_api_token: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
-      typesense_api_key: ${{ secrets.TYPESENSE_API_KEY_DEV }}
-      typesense_client_api_key: ${{ secrets.TYPESENSE_CLIENT_API_KEY_DEV }}
-      auth0_secret: ${{ secrets.AUTH0_SECRET_DEV }}
-      auth0_client_secret: ${{ secrets.AUTH0_CLIENT_SECRET_DEV }}
-    with:
-      environment: dev
-      build_number: ${{ github.sha }}
-      workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      service_account: ${{ vars.GCP_DEV_TERRAFORM_SERVICE_ACCOUNT }}
+  # dev:
+  #   needs: build
+  #   uses: ./.github/workflows/run-terraform.yaml
+  #   secrets:
+  #     tf_api_token: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
+  #     typesense_api_key: ${{ secrets.TYPESENSE_API_KEY_DEV }}
+  #     typesense_client_api_key: ${{ secrets.TYPESENSE_CLIENT_API_KEY_DEV }}
+  #     auth0_secret: ${{ secrets.AUTH0_SECRET_DEV }}
+  #     auth0_client_secret: ${{ secrets.AUTH0_CLIENT_SECRET_DEV }}
+  #   with:
+  #     environment: dev
+  #     build_number: ${{ github.sha }}
+  #     workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  #     service_account: ${{ vars.GCP_DEV_TERRAFORM_SERVICE_ACCOUNT }}
 
   # review:
   #   needs: dev
   #   uses: ./.github/workflows/manual-review.yaml
 
   prd:
-    needs: dev
+    # needs: dev
+    needs: build
     uses: ./.github/workflows/run-terraform.yaml
     secrets:
       tf_api_token: ${{ secrets.TF_TOKEN_APP_TERRAFORM_IO }}
