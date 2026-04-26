@@ -31,7 +31,7 @@ jobs:
           - name: uploader
             runtime: go
             working_directory: apps/media-upload
-            test_command: go test ./...
+            test_command: DISTRIBUTION_BUCKET=test FIRESTORE_PROJECT_ID=test go test ./...
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -42,16 +42,15 @@ jobs:
         if: matrix.runtime == 'go'
         working-directory: ${{ matrix.working_directory }}
         run: ${{ matrix.test_command }}
+      - uses: pnpm/action-setup@v4
+        if: matrix.runtime == 'node'
+        with:
+          version: 10.28.0
       - uses: actions/setup-node@v4
         if: matrix.runtime == 'node'
         with:
           node-version: 25.9.0
           cache: pnpm
-      - name: Enable corepack
-        if: matrix.runtime == 'node'
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.28.0 --activate
       - name: Install dependencies
         if: matrix.runtime == 'node'
         run: pnpm install --frozen-lockfile
