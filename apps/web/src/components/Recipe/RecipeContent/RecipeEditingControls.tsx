@@ -22,6 +22,7 @@ import {
   dtos_CreateRecipe,
   models_User,
 } from '@4ks/api-fetch';
+import { shouldHandleSettledMutation } from '@/libs/mutation-state';
 
 interface RecipeEditingControlsProps {
   user: models_User | undefined;
@@ -58,21 +59,26 @@ export default function RecipeEditingControls({
 
   // handle createData mutation effects
   useEffect(() => {
-    const { isPending, isError } = createData;
-
-    if (!createSubmit || isPending) {
+    if (
+      !shouldHandleSettledMutation(createSubmit, {
+        isPending: createData.isPending,
+        isError: createData.isError,
+        isSuccess: createData.isSuccess,
+      })
+    ) {
       return;
     }
 
-    // prevent infinite loop
     setCreateSubmit(false);
 
-    if (isError) {
+    if (createData.isError) {
       setSaveError(true);
+      rtx.setActionInProgress(false);
       return;
     }
 
     setSaveError(false);
+    rtx.setActionInProgress(false);
     router.push(
       `/recipe/${createData.data?.id}-${normalizeForURL(
         createData.data?.currentRevision?.name
@@ -80,28 +86,42 @@ export default function RecipeEditingControls({
     );
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createData, createSubmit]);
+  }, [
+    createData.data,
+    createData.isError,
+    createData.isPending,
+    createData.isSuccess,
+    createSubmit,
+  ]);
 
   // handle updateData mutation effects
   useEffect(() => {
-    const { isPending, isError } = updateData;
-
-    if (!updateSubmit || isPending) {
+    if (
+      !shouldHandleSettledMutation(updateSubmit, {
+        isPending: updateData.isPending,
+        isError: updateData.isError,
+        isSuccess: updateData.isSuccess,
+      })
+    ) {
       return;
     }
 
-    // prevent infinite loop
     setUpdateSubmit(false);
     rtx.setActionInProgress(false);
 
-    if (isError) {
+    if (updateData.isError) {
       setSaveError(true);
       return;
     }
 
     setSaveError(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updateData, updateSubmit]);
+  }, [
+    updateData.isError,
+    updateData.isPending,
+    updateData.isSuccess,
+    updateSubmit,
+  ]);
 
   useEffect(() => {
     if (forkData.isSuccess) {

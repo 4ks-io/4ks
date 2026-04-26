@@ -18,6 +18,7 @@ import {
   models_RecipeMedia,
 } from '@4ks/api-fetch';
 import log from '@/libs/logger';
+import { shouldHandleSettledMutation } from '@/libs/mutation-state';
 
 const RecipeContext = React.createContext<IRecipeContext>(initialState);
 
@@ -49,35 +50,71 @@ export function RecipeContextProvider({
 
   // update media
   useEffect(() => {
-    // prevent infinite loop
-    if (!mediaMutex) return;
-
-    const { isPending, isError, isSuccess, data } = mediaData;
-    if (isPending || isError || !isSuccess) {
+    if (
+      !shouldHandleSettledMutation(mediaMutex, {
+        isPending: mediaData.isPending,
+        isError: mediaData.isError,
+        isSuccess: mediaData.isSuccess,
+      })
+    ) {
       return;
     }
+
     setMediaMutex(false);
-    if (data?.data && state.media.length != data?.data.length) {
-      dispatch({ type: RecipeContextAction.SET_MEDIA, payload: data?.data });
+
+    if (
+      mediaData.isSuccess &&
+      mediaData.data?.data &&
+      state.media.length != mediaData.data.data.length
+    ) {
+      dispatch({
+        type: RecipeContextAction.SET_MEDIA,
+        payload: mediaData.data.data,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mediaData, state.media]);
+  }, [
+    mediaData.data,
+    mediaData.isError,
+    mediaData.isPending,
+    mediaData.isSuccess,
+    mediaMutex,
+    state.media.length,
+  ]);
 
   // update recipe
   useEffect(() => {
-    // prevent infinite loop
-    if (!recipeMutex) return;
-
-    const { isPending, isError, isSuccess, data } = recipeData;
-    if (isPending || isError || !isSuccess) {
+    if (
+      !shouldHandleSettledMutation(recipeMutex, {
+        isPending: recipeData.isPending,
+        isError: recipeData.isError,
+        isSuccess: recipeData.isSuccess,
+      })
+    ) {
       return;
     }
+
     setRecipeMutex(false);
-    if (data?.data && state.recipe != data?.data) {
+
+    if (
+      recipeData.isSuccess &&
+      recipeData.data?.data &&
+      state.recipe != recipeData.data.data
+    ) {
       setEditInProgress(false);
-      dispatch({ type: RecipeContextAction.SET_RECIPE, payload: data.data });
+      dispatch({
+        type: RecipeContextAction.SET_RECIPE,
+        payload: recipeData.data.data,
+      });
     }
-  }, [recipeData, state.recipe, recipeMutex]);
+  }, [
+    recipeData.data,
+    recipeData.isError,
+    recipeData.isPending,
+    recipeData.isSuccess,
+    recipeMutex,
+    state.recipe,
+  ]);
 
   function setEditInProgress(value: boolean) {
     dispatch({

@@ -24,6 +24,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
+import { shouldHandleSettledMutation } from '@/libs/mutation-state';
 // import Avatar from '@mui/material/Avatar';
 
 type RecipeHeaderProps = {
@@ -77,20 +78,41 @@ export function RecipeHeader({ user, recipe }: RecipeHeaderProps) {
   }, [rtx?.recipe?.currentRevision]);
 
   useEffect(() => {
-    if (!forkActionMutex || forkData.isPending) {
+    if (
+      !shouldHandleSettledMutation(forkActionMutex, {
+        isPending: forkData.isPending,
+        isError: forkData.isError,
+        isSuccess: forkData.isSuccess,
+      })
+    ) {
       return;
     }
+
     if (forkData.isSuccess) {
       router.push(`/recipe/${forkData.data?.id}-${normalizeForURL(title)}`);
     }
 
     setForkActionMutex(false);
+    rtx.setActionInProgress(false);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forkData]);
+  }, [
+    forkActionMutex,
+    forkData.data,
+    forkData.isError,
+    forkData.isPending,
+    forkData.isSuccess,
+    title,
+  ]);
 
   useEffect(() => {
-    if (!starActionMutex || starData.isPending) {
+    if (
+      !shouldHandleSettledMutation(starActionMutex, {
+        isPending: starData.isPending,
+        isError: starData.isError,
+        isSuccess: starData.isSuccess,
+      })
+    ) {
       return;
     }
 
@@ -102,7 +124,12 @@ export function RecipeHeader({ user, recipe }: RecipeHeaderProps) {
       rtx.resetRecipe();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [starData]);
+  }, [
+    starActionMutex,
+    starData.isError,
+    starData.isPending,
+    starData.isSuccess,
+  ]);
 
   function forkThisRecipe() {
     if (!isAuthenticated) {

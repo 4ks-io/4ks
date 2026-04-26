@@ -15,6 +15,7 @@ import { trpc } from '@/trpc/client';
 import { useRouter } from 'next/navigation';
 import { useRecipeContext } from '@/providers/recipe-context';
 import { models_Recipe } from '@4ks/api-fetch';
+import { shouldHandleSettledMutation } from '@/libs/mutation-state';
 
 type RecipeSettingsProps = {
   recipe: models_Recipe;
@@ -36,22 +37,32 @@ export default function RecipeSettings({ recipe }: RecipeSettingsProps) {
   };
 
   React.useEffect(() => {
-    const { isPending, isSuccess } = deleteMutation;
-    if (!deleteMutex || isPending) {
+    if (
+      !shouldHandleSettledMutation(deleteMutex, {
+        isPending: deleteMutation.isPending,
+        isError: deleteMutation.isError,
+        isSuccess: deleteMutation.isSuccess,
+      })
+    ) {
       return;
     }
 
     setDeleteMutex(false);
     rtx.setActionInProgress(false);
 
-    if (isSuccess) {
+    if (deleteMutation.isSuccess) {
       router.push('/');
     }
     // error
     // tr@ck: handle error
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deleteMutex, deleteMutation]);
+  }, [
+    deleteMutation.isError,
+    deleteMutation.isPending,
+    deleteMutation.isSuccess,
+    deleteMutex,
+  ]);
 
   const handleDelete = () => {
     if (!recipe.id) {
