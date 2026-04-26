@@ -13,7 +13,7 @@ import (
 	"cloud.google.com/go/vision/v2/apiv1/visionpb"
 )
 
-var retryableError = errors.New("upload: retryable error")
+var errRetryable = errors.New("upload: retryable error")
 
 const (
 	maxUploadBytes   int64 = 6 * 1024 * 1024
@@ -22,12 +22,12 @@ const (
 	maxDecodedPixels int64 = 40 * 1024 * 1024
 )
 
-func validate(ctx context.Context, obj *storage.ObjectHandle, attrs *storage.ObjectAttrs) (error, MediaStatus) {
+func validate(ctx context.Context, obj *storage.ObjectHandle, attrs *storage.ObjectAttrs) (MediaStatus, error) {
 	if err := validateObjectSize(attrs.Size); err != nil {
-		return err, MediaStatusErrorSize
+		return MediaStatusErrorSize, err
 	}
 	if err := validateMIMEType(ctx, attrs.ContentType, obj); err != nil {
-		return err, MediaStatusErrorInvalidMIMEType
+		return MediaStatusErrorInvalidMIMEType, err
 	}
 	// Validates obj by calling Vision API.
 	return validateByVisionAPI(ctx, obj)
@@ -44,7 +44,7 @@ func validateMIMEType(ctx context.Context, contentType string, obj *storage.Obje
 	r, err := obj.NewReader(ctx)
 	if err != nil {
 		return fmt.Errorf("upload: failed to open new file %q : %w",
-			obj.ObjectName(), retryableError)
+			obj.ObjectName(), errRetryable)
 	}
 	defer r.Close()
 	_, _, err = loadValidatedImageBytes(r, contentType)
@@ -115,14 +115,14 @@ func isMIMETypeCompatible(contentType string, format string) bool {
 
 // validateByVisionAPI uses Safe Search Detection provided by Cloud Vision API.
 // See more details: https://cloud.google.com/vision/docs/detecting-safe-search
-func validateByVisionAPI(ctx context.Context, obj *storage.ObjectHandle) (error, MediaStatus) {
+func validateByVisionAPI(ctx context.Context, obj *storage.ObjectHandle) (MediaStatus, error) {
 	client, err := vision.NewImageAnnotatorClient(ctx)
 	if err != nil {
-		return fmt.Errorf(
+		return MediaStatusErrorVision, fmt.Errorf(
 			"upload: failed to create a ImageAnnotator client, error = %v : %w",
 			err,
-			retryableError,
-		), MediaStatusErrorVision
+			errRetryable,
+		)
 	}
 	defer client.Close()
 
@@ -143,29 +143,29 @@ func validateByVisionAPI(ctx context.Context, obj *storage.ObjectHandle) (error,
 		},
 	})
 	if err != nil {
-		return fmt.Errorf(
+		return MediaStatusErrorSafeSearch, fmt.Errorf(
 			"upload: failed to detect safe search, error = %v : %w",
 			err,
-			retryableError,
-		), MediaStatusErrorSafeSearch
+			errRetryable,
+		)
 	}
 	if len(resp.GetResponses()) != 1 || resp.GetResponses()[0].GetSafeSearchAnnotation() == nil {
-		return errors.New("upload: safe search response missing annotation"), MediaStatusErrorSafeSearch
+		return MediaStatusErrorSafeSearch, errors.New("upload: safe search response missing annotation")
 	}
 
 	ssa := resp.GetResponses()[0].GetSafeSearchAnnotation()
 	// Returns an unretryable error if there is any possibility of inappropriate image.
 	if ssa.Adult >= visionpb.Likelihood_POSSIBLE {
-		return errors.New("upload: exceeds the prescribed likelihood (adult)"), MediaStatusErrorInappropriateAdult
+		return MediaStatusErrorInappropriateAdult, errors.New("upload: exceeds the prescribed likelihood (adult)")
 	}
 	if ssa.Medical >= visionpb.Likelihood_POSSIBLE {
-		return errors.New("upload: exceeds the prescribed likelihood (medical)"), MediaStatusErrorInappropriateMedical
+		return MediaStatusErrorInappropriateMedical, errors.New("upload: exceeds the prescribed likelihood (medical)")
 	}
 	if ssa.Violence >= visionpb.Likelihood_POSSIBLE {
-		return errors.New("upload: exceeds the prescribed likelihood (violence)"), MediaStatusErrorInappropriateViolence
+		return MediaStatusErrorInappropriateViolence, errors.New("upload: exceeds the prescribed likelihood (violence)")
 	}
 	if ssa.Racy >= visionpb.Likelihood_POSSIBLE {
-		return errors.New("upload: exceeds the prescribed likelihood"), MediaStatusErrorInappropriateRacy
+		return MediaStatusErrorInappropriateRacy, errors.New("upload: exceeds the prescribed likelihood")
 	}
-	return nil, MediaStatusProcessing
+	return MediaStatusProcessing, nil
 }

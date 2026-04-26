@@ -12,14 +12,17 @@ type StorageObjectData struct {
 	Updated        time.Time `json:"updated,omitempty"`
 }
 
+// FileProps holds the parsed extension and basename of an uploaded file.
 type FileProps struct {
 	Extension string
 	Basename  string
 }
 
+// MediaStatus represents the processing state of a media asset.
 // Same as libs/go/models/recipe-media-status.go
 type MediaStatus int
 
+// MediaStatus constants.
 const (
 	MediaStatusRequested                  MediaStatus = 0
 	MediaStatusProcessing                 MediaStatus = 1

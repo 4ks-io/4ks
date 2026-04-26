@@ -143,6 +143,6 @@ func TestParseUploadObjectNameRejectsMissingExtension(t *testing.T) {
 func TestUpdateRecipeMediaDevelopmentNoop(t *testing.T) {
 	t.Parallel()
 
-	updater := updateRecipeMedia(RuntimeConfig{Development: true, FirestoreProjectID: "test"}, nil, context.Background(), "media-1")
+	updater := updateRecipeMedia(context.Background(), RuntimeConfig{Development: true, FirestoreProjectID: "test"}, nil, "media-1")
 	updater(MediaStatusReady)
 }

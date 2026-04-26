@@ -1,4 +1,4 @@
-// package function is the entrypoint for the Cloud Function that validates and resizes images
+// Package function is the entrypoint for the Cloud Function that validates and resizes images.
 package function
 
 import (
@@ -19,7 +19,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 )
 
-func updateRecipeMedia(cfg RuntimeConfig, c *firestore.CollectionRef, ctx context.Context, id string) func(MediaStatus) {
+func updateRecipeMedia(ctx context.Context, cfg RuntimeConfig, c *firestore.CollectionRef, id string) func(MediaStatus) {
 	return func(s MediaStatus) {
 		if cfg.Development {
 			log.Printf("mock action: update status %s (%d): %s", id, s, cfg.FirestoreProjectID)
@@ -57,7 +57,7 @@ func newUploadImageHandler(cfg RuntimeConfig) func(context.Context, event.Event)
 		id, f, err := parseUploadObjectName(data.Name)
 		if err != nil {
 			if id != "" {
-				updateRecipeMedia(cfg, c, ctx, id)(MediaStatusErrorUnknown)
+				updateRecipeMedia(ctx, cfg, c, id)(MediaStatusErrorUnknown)
 			}
 			log.Printf("upload: rejecting malformed object name %q: %v", data.Name, err)
 			return err
@@ -66,7 +66,7 @@ func newUploadImageHandler(cfg RuntimeConfig) func(context.Context, event.Event)
 		log.Printf("Processing (%s) gs://%s/%s", id, data.Bucket, data.Name)
 
 		// update status
-		var up = updateRecipeMedia(cfg, c, ctx, id)
+		var up = updateRecipeMedia(ctx, cfg, c, id)
 		up(MediaStatusProcessing)
 
 		// storage client
@@ -88,7 +88,7 @@ func newUploadImageHandler(cfg RuntimeConfig) func(context.Context, event.Event)
 		}
 
 		// verify and validate src content-type and content (image vision)
-		if err, status := validate(ctx, src, attrs); err != nil {
+		if status, err := validate(ctx, src, attrs); err != nil {
 			up(status)
 			return err
 		}

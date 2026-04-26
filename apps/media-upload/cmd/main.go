@@ -1,3 +1,4 @@
+// Package main is the local runner entrypoint for the media-upload Cloud Function.
 package main
 
 import (
