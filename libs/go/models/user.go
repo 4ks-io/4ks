@@ -18,15 +18,14 @@ type User struct {
 	UpdatedDate   time.Time   `firestore:"updatedDate,omitempty" json:"updatedDate"`
 }
 
-// Subset of a user that will be nested in a RecipeRevision or Recipe object
-
+// UserSummary is a compact user reference nested inside Recipe and RecipeRevision documents.
 type UserSummary struct {
 	ID          string `firestore:"id,omitempty" json:"id"`
 	Username    string `firestore:"username,omitempty" json:"username"`
 	DisplayName string `firestore:"displayName,omitempty" json:"displayName"`
 }
 
-// UserSummary godoc
+// Username is the validation response for a username availability check.
 type Username struct {
 	Valid bool   `json:"valid" binding:"required"`
 	Msg   string `json:"msg" binding:"required"`
@@ -44,14 +43,16 @@ type UserEvent struct {
 	Error UserEventError `firestore:"error,omitempty" json:"error"`
 }
 
-// only present if
+// UserEventError carries error details when a UserEvent has failed status.
 type UserEventError struct {
 	Message string `firestore:"message,omitempty" json:"message"`
 	Code    int    `firestore:"code,omitempty" json:"code"`
 }
 
+// UserEventStatus represents the processing state of a user event.
 type UserEventStatus int
 
+// UserEventStatus constants.
 const (
 	UserEventCreated      UserEventStatus = 0
 	UserEventProcessing   UserEventStatus = 1
@@ -61,8 +62,10 @@ const (
 	UserEventErrorState   UserEventStatus = 60
 )
 
+// UserEventType identifies the kind of action that triggered a user event.
 type UserEventType int
 
+// UserEventType constants.
 const (
 	UserEventTypeNewUser      UserEventType = 0
 	UserEventTypeCreateRecipe UserEventType = 2

@@ -1,3 +1,4 @@
+// Package tracing initialises the OpenTelemetry tracer provider from configuration.
 package tracing
 
 import (
@@ -77,6 +78,7 @@ func InitTracerProvider(cfg Config) *sdktrace.TracerProvider {
 	return tp
 }
 
+// NewTracer returns a named tracer from the global tracer provider.
 func NewTracer(tracerName string) trace.Tracer {
 	return otel.Tracer(tracerName)
 }

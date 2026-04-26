@@ -2,8 +2,10 @@
 
 package models
 
+// MediaStatus represents the processing state of a media asset.
 type MediaStatus int
 
+// MediaStatus constants mirror apps/media-upload/media-status.go.
 const (
 	MediaStatusRequested                  MediaStatus = 0
 	MediaStatusProcessing                 MediaStatus = 1

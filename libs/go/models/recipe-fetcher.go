@@ -1,3 +1,4 @@
+// Package models defines shared domain types used across 4ks services.
 package models
 
 import "github.com/google/uuid"
@@ -9,6 +10,7 @@ type FetcherRequest struct {
 	UserEventID uuid.UUID `json:"userEventId"`
 }
 
+// FetcherResponse holds the recipe data returned by the fetcher service.
 type FetcherResponse struct {
 	Name         string   `json:"name"`
 	Link         string   `json:"link"`
@@ -16,6 +18,7 @@ type FetcherResponse struct {
 	Ingredients  []string `json:"ingredients"`
 }
 
+// FetcherEventData is the payload stored in a UserEvent after a recipe fetch completes.
 type FetcherEventData struct {
 	RecipeID    string `json:"recipeId"`
 	RecipeTitle string `json:"recipeTitle"`

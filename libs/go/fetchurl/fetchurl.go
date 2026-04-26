@@ -1,3 +1,4 @@
+// Package fetchurl provides URL validation and normalization with SSRF protection.
 package fetchurl
 
 import (
@@ -13,6 +14,7 @@ import (
 
 const dnsLookupTimeout = 5 * time.Second
 
+// Sentinel errors returned by Validate and related functions.
 var (
 	ErrEmptyURL             = errors.New("url is required")
 	ErrInvalidURL           = errors.New("url must be an absolute https URL")
@@ -24,6 +26,7 @@ var (
 	ErrHostResolutionFailed = errors.New("url host could not be resolved")
 )
 
+// ValidatedURL holds the parsed and DNS-resolved result of a successful URL validation.
 type ValidatedURL struct {
 	URL        *url.URL
 	Normalized string
@@ -31,14 +34,17 @@ type ValidatedURL struct {
 	ResolvedIP []net.IPAddr
 }
 
+// Resolver is the DNS lookup interface used by ValidateWithResolver.
 type Resolver interface {
 	LookupIPAddr(ctx context.Context, host string) ([]net.IPAddr, error)
 }
 
+// Validate normalizes raw, checks it against the block list, and resolves its IP addresses.
 func Validate(ctx context.Context, raw string) (*ValidatedURL, error) {
 	return ValidateWithResolver(ctx, raw, net.DefaultResolver)
 }
 
+// ValidateWithResolver is like Validate but accepts a custom DNS resolver for testing.
 func ValidateWithResolver(ctx context.Context, raw string, resolver Resolver) (*ValidatedURL, error) {
 	u, normalized, err := Normalize(raw)
 	if err != nil {
@@ -76,6 +82,7 @@ func ValidateWithResolver(ctx context.Context, raw string, resolver Resolver) (*
 	return validated, nil
 }
 
+// Normalize parses, validates scheme/host, and returns a canonical URL string.
 func Normalize(raw string) (*url.URL, string, error) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
@@ -111,6 +118,7 @@ func Normalize(raw string) (*url.URL, string, error) {
 	return u, u.String(), nil
 }
 
+// IsBlockedHostname reports whether host is a reserved or loopback name that must not be fetched.
 func IsBlockedHostname(host string) bool {
 	normalized := strings.TrimSuffix(strings.ToLower(strings.TrimSpace(host)), ".")
 	if normalized == "" {
@@ -124,11 +132,13 @@ func IsBlockedHostname(host string) bool {
 	return false
 }
 
+// IsIPLiteral reports whether host is a bare IP address or bracketed IPv6 literal.
 func IsIPLiteral(host string) bool {
 	_, err := netip.ParseAddr(strings.Trim(host, "[]"))
 	return err == nil
 }
 
+// ValidateResolvedIPs returns an error if any address in ipAddrs is blocked.
 func ValidateResolvedIPs(ipAddrs []net.IPAddr) error {
 	for _, ipAddr := range ipAddrs {
 		if IsBlockedIP(ipAddr.IP) {
@@ -138,6 +148,7 @@ func ValidateResolvedIPs(ipAddrs []net.IPAddr) error {
 	return nil
 }
 
+// IsBlockedIP reports whether ip falls in a loopback, private, or otherwise disallowed range.
 func IsBlockedIP(ip net.IP) bool {
 	addr, ok := netip.AddrFromSlice(ip)
 	if !ok {

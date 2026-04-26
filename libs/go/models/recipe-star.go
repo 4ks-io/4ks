@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// RecipeStar records that a user has starred a recipe.
 type RecipeStar struct {
 	User        UserSummary   `firestore:"user" json:"user"`
 	Recipe      RecipeSummary `firestore:"recipe" json:"recipe"`
