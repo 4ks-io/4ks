@@ -3,6 +3,19 @@ on:
   push:
     branches:
       - main
+    paths:
+      - .github/workflows/**
+      - go.mod
+      - go.sum
+      - go.work
+      - go.work.sum
+      - apps/**
+      - libs/**
+      - utils/**
+      - iac/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
 
 permissions:
   contents: read
@@ -40,6 +53,13 @@ jobs:
         if: matrix.runtime == 'go'
         with:
           go-version-file: go.work
+          cache-dependency-path: |
+            go.sum
+            apps/fetcher/go.sum
+            apps/media-upload/go.sum
+            utils/media-update/go.sum
+            utils/recipe-search-refresh/go.sum
+            utils/recipe-update/go.sum
       - name: Test ${{ matrix.name }}
         if: matrix.runtime == 'go'
         working-directory: ${{ matrix.working_directory }}
@@ -55,7 +75,7 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         if: matrix.runtime == 'node'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline
       - name: Test ${{ matrix.name }}
         if: matrix.runtime == 'node'
         run: pnpm --filter @4ks/web test
