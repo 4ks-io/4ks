@@ -26,3 +26,9 @@ resource "google_storage_bucket" "media_write" {
     }
   }
 }
+
+resource "google_storage_bucket_iam_member" "local_dev_sa_media_write_creator" {
+  bucket = google_storage_bucket.media_write.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:local-dev-sa@sbx-4ks.iam.gserviceaccount.com"
+}

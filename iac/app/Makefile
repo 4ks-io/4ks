@@ -1,9 +1,7 @@
 .PHONY: plan apply validate-env work
 
-
 work:
 	terraform workspace list
-
 
 # function to validate dev or prd argument value
 validate-env:
