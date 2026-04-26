@@ -49,7 +49,7 @@ func TestCasbinAuthorizationHelpers(t *testing.T) {
 		t.Fatal("expected contributor list to include subject")
 	}
 
-	ids := getIds([]models.UserSummary{{ID: "a"}, {ID: "b"}})
+	ids := getIDs([]models.UserSummary{{ID: "a"}, {ID: "b"}})
 	if len(ids) != 2 || ids[0] != "a" || ids[1] != "b" {
 		t.Fatalf("unexpected id list: %#v", ids)
 	}
