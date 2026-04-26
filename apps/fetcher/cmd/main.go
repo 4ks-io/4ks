@@ -10,7 +10,6 @@ import (
 
 func main() {
 	cfg := fetcher.MustLoadRuntimeConfig()
-	fetcher.Register(cfg)
 
 	if err := funcframework.Start(cfg.Port); err != nil {
 		log.Fatalf("funcframework.Start: %v\n", err)

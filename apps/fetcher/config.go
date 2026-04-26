@@ -53,6 +53,11 @@ func LoadRuntimeConfig() (*RuntimeConfig, error) {
 	return cfg, nil
 }
 
+func init() {
+	cfg := MustLoadRuntimeConfig()
+	Register(cfg)
+}
+
 // Register registers the CloudEvent handler with the Functions Framework.
 func Register(cfg RuntimeConfig) {
 	functions.CloudEvent(
