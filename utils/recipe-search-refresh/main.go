@@ -1,3 +1,4 @@
+// Package main refreshes the Typesense recipe search index from Firestore.
 package main
 
 import (

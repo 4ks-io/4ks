@@ -1,3 +1,4 @@
+// Package main updates media records in Firestore.
 package main
 
 import (

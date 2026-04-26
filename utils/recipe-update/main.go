@@ -1,3 +1,4 @@
+// Package main runs a one-off recipe data migration utility.
 package main
 
 import (
