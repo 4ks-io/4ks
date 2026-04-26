@@ -1,24 +1,12 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.devtool = 'source-map';
-    }
-    return config;
-  },
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+  allowedDevOrigins: ['local.4ks.io'],
   productionBrowserSourceMaps: false,
   reactStrictMode: true,
   experimental: {
     optimizePackageImports: ['@mui/icons-material'],
   },
-  // async rewrites() {
-  //   return [
-  //     {
-  //       source: '/recipe/:id/(forks|media|settings|versions)',
-  //       destination: '/recipe/:id',
-  //     },
-  //   ];
-  // },
   images: {
     remotePatterns: [
       {
@@ -55,4 +43,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

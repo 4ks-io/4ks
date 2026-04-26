@@ -5,7 +5,7 @@ import AppHeaderAvatarUnauthenticated from '@/components/AppHeaderAvatarUnauthen
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
-import Tooltip from '@mui/material/Tooltip';
+
 import { handleUserNavigation } from '@/libs/server/navigation';
 import { Page, PageProps } from '@/libs/navigation';
 import NewRecipeButton from '@/components/NewRecipeButton';
@@ -40,14 +40,11 @@ export default async function DefaultPage({}: PageProps) {
           href="/explore"
           style={{ textDecoration: 'none', color: '#000' }}
         >
-          <Tooltip title="Explore">
-            <Box
-              component="img"
-              sx={{ height: 96, paddingRight: 1 }}
-              alt="4ks.io"
-              src={'/logo.svg'}
-            />
-          </Tooltip>
+          <img
+            style={{ height: 96, paddingRight: 8 }}
+            alt="4ks.io"
+            src="/logo.svg"
+          />
         </Link>
         <LandingPageSearchBox />
       </Stack>
