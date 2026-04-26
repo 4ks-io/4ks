@@ -2,6 +2,7 @@ package recipesvc
 
 import (
 	"context"
+	"sort"
 
 	firestore "cloud.google.com/go/firestore"
 	"github.com/rs/zerolog/log"
@@ -118,7 +119,7 @@ func (s recipeService) GetRecipesByUserID(ctx context.Context, id string, limit 
 }
 
 func (s recipeService) GetRecipeRevisions(ctx context.Context, recipeID string) ([]*models.RecipeRevision, error) {
-	recipeRevisionsDocs, err := s.recipeRevisionsCollection.Where("recipeID", "==", recipeID).OrderBy("createdDate", firestore.Desc).Documents(ctx).GetAll()
+	recipeRevisionsDocs, err := s.recipeRevisionsCollection.Where("recipeId", "==", recipeID).OrderBy("createdDate", firestore.Desc).Documents(ctx).GetAll()
 
 	if err != nil {
 		return nil, err
@@ -137,6 +138,33 @@ func (s recipeService) GetRecipeRevisions(ctx context.Context, recipeID string) 
 	}
 
 	return recipeRevisions, nil
+}
+
+func (s recipeService) GetRecipeForks(ctx context.Context, recipeID string) ([]*models.Recipe, error) {
+	recipeDoc, err := s.recipeCollection.Doc(recipeID).Get(ctx)
+
+	if err != nil || !recipeDoc.Exists() {
+		return nil, ErrRecipeNotFound
+	}
+
+	recipeForkDocs, err := s.recipeCollection.Where("branch", "==", recipeID).Documents(ctx).GetAll()
+
+	if err != nil {
+		return nil, err
+	}
+
+	recipeForks := make([]*models.Recipe, len(recipeForkDocs))
+	for i, ds := range recipeForkDocs {
+		recipeFork := new(models.Recipe)
+		ds.DataTo(recipeFork)
+		recipeForks[i] = recipeFork
+	}
+
+	sort.Slice(recipeForks, func(i, j int) bool {
+		return recipeForks[i].UpdatedDate.After(recipeForks[j].UpdatedDate)
+	})
+
+	return recipeForks, nil
 }
 
 func (s recipeService) GetRecipeRevisionByID(ctx context.Context, revisionID string) (*models.RecipeRevision, error) {

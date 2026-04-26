@@ -185,6 +185,44 @@ export class RecipesService {
     }
 
     /**
+     * Get direct forks for a Recipe
+     * Get direct child forks for a Recipe
+     * @param recipeId Recipe ID
+     * @returns models_Recipe OK
+     * @throws ApiError
+     */
+    public getApiRecipesForks(
+        recipeId: string,
+    ): CancelablePromise<Array<models_Recipe>> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/api/recipes/{recipeID}/forks',
+            path: {
+                'recipeID': recipeId,
+            },
+        });
+    }
+
+    /**
+     * Fork Recipe Revision
+     * Fork a specific historical recipe revision
+     * @param revisionId Revision ID
+     * @returns models_Recipe OK
+     * @throws ApiError
+     */
+    public postApiRecipesRevisionsFork(
+        revisionId: string,
+    ): CancelablePromise<models_Recipe> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/api/recipes/revisions/{revisionID}/fork',
+            path: {
+                'revisionID': revisionId,
+            },
+        });
+    }
+
+    /**
      * Get all medias for a Recipe
      * Get all medias for a Recipe
      * @param recipeId Recipe ID

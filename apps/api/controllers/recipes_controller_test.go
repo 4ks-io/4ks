@@ -502,6 +502,41 @@ func TestRecipeControllerReadHandlers(t *testing.T) {
 		}
 	})
 
+	t.Run("get recipe forks returns data", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewRecipeController(
+			stubUserService{},
+			stubRecipeService{
+				getRecipeForksFn: func(_ context.Context, recipeID string) ([]*models.Recipe, error) {
+					r := recipeFixture()
+					r.ID = "recipe-fork-1"
+					r.Branch = recipeID
+					return []*models.Recipe{r}, nil
+				},
+			},
+			stubSearchService{},
+			stubStaticService{},
+			stubFetcherService{},
+		)
+
+		rec := performRecipeControllerRequest(t, controller.GetRecipeForks, http.MethodGet, "/api/recipes/recipe-1/forks", nil, func(ctx *gin.Context) {
+			ctx.Params = gin.Params{{Key: "id", Value: "recipe-1"}}
+		})
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+
+		var payload []*models.Recipe
+		if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if len(payload) != 1 || payload[0].Branch != "recipe-1" {
+			t.Fatalf("unexpected payload: %+v", payload)
+		}
+	})
+
 	t.Run("get recipe revision not found maps to 404", func(t *testing.T) {
 		t.Parallel()
 
@@ -643,6 +678,81 @@ func TestRecipeControllerWriteHandlers(t *testing.T) {
 
 		if rec.Code != http.StatusInternalServerError {
 			t.Fatalf("expected 500, got %d", rec.Code)
+		}
+	})
+
+	t.Run("fork recipe revision maps revision not found to 404", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewRecipeController(
+			stubUserService{
+				getUserByIDFn: func(context.Context, string) (*models.User, error) {
+					return &models.User{ID: "user-1", Username: "chef-user", DisplayName: "Chef User"}, nil
+				},
+			},
+			stubRecipeService{
+				forkRecipeByRevisionIDFn: func(context.Context, string, models.UserSummary) (*models.Recipe, error) {
+					return nil, recipesvc.ErrRecipeRevisionNotFound
+				},
+			},
+			stubSearchService{},
+			stubStaticService{},
+			stubFetcherService{},
+		)
+
+		rec := performRecipeControllerRequest(t, controller.ForkRecipeRevision, http.MethodPost, "/api/recipes/revisions/rev-1/fork", nil, func(ctx *gin.Context) {
+			ctx.Params = gin.Params{{Key: "revisionID", Value: "rev-1"}}
+			ctx.Set("id", "user-1")
+		})
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("expected 404, got %d", rec.Code)
+		}
+	})
+
+	t.Run("fork recipe revision returns recipe", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewRecipeController(
+			stubUserService{
+				getUserByIDFn: func(context.Context, string) (*models.User, error) {
+					return &models.User{ID: "user-1", Username: "chef-user", DisplayName: "Chef User"}, nil
+				},
+			},
+			stubRecipeService{
+				forkRecipeByRevisionIDFn: func(context.Context, string, models.UserSummary) (*models.Recipe, error) {
+					r := recipeFixture()
+					r.ID = "forked-from-revision"
+					return r, nil
+				},
+			},
+			stubSearchService{
+				upsertSearchRecipeDocumentFn: func(recipe *models.Recipe) error {
+					if recipe.ID != "forked-from-revision" {
+						t.Fatalf("unexpected recipe passed to search index: %+v", recipe)
+					}
+					return nil
+				},
+			},
+			stubStaticService{},
+			stubFetcherService{},
+		)
+
+		rec := performRecipeControllerRequest(t, controller.ForkRecipeRevision, http.MethodPost, "/api/recipes/revisions/rev-1/fork", nil, func(ctx *gin.Context) {
+			ctx.Params = gin.Params{{Key: "revisionID", Value: "rev-1"}}
+			ctx.Set("id", "user-1")
+		})
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+
+		var payload models.Recipe
+		if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if payload.ID != "forked-from-revision" {
+			t.Fatalf("unexpected payload: %+v", payload)
 		}
 	})
 }

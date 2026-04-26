@@ -188,6 +188,7 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers) {
 			// Public recipe reads are limited separately from authenticated writes.
 			recipes.GET("/:id", publicReadLimit, c.Recipe.GetRecipe)
 			recipes.GET("/", publicReadLimit, c.Recipe.GetRecipes)
+			recipes.GET("/:id/forks", publicReadLimit, c.Recipe.GetRecipeForks)
 			recipes.GET("/:id/revisions", publicReadLimit, c.Recipe.GetRecipeRevisions)
 			recipes.GET("/revisions/:revisionID", publicReadLimit, c.Recipe.GetRecipeRevision)
 			recipes.GET("/:id/media", publicReadLimit, c.Recipe.GetRecipeMedia)
@@ -201,6 +202,7 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers) {
 			recipes.PATCH("/:id", authenticatedWriteLimit, c.Recipe.UpdateRecipe)
 			recipes.POST("/:id/star", authenticatedWriteLimit, c.Recipe.StarRecipe)
 			recipes.POST("/:id/fork", authenticatedWriteLimit, c.Recipe.ForkRecipe)
+			recipes.POST("/revisions/:revisionID/fork", authenticatedWriteLimit, c.Recipe.ForkRecipeRevision)
 			// Media initialization is its own abuse target because it creates a signed upload URL.
 			recipes.POST("/:id/media", mediaInitLimit, c.Recipe.CreateRecipeMedia)
 			recipes.DELETE("/:id", authenticatedWriteLimit, c.Recipe.DeleteRecipe)

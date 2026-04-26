@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Page, PageProps } from '@/libs/navigation';
 import { handleUserNavigation } from '@/libs/server/navigation';
 import { getRecipeIdFromPageParams } from '../navigation';
-import { getRecipeData, getRecipeMedia } from '../data';
+import { getRecipeData, getRecipeForks, getRecipeMedia } from '../data';
 import log from '@/libs/logger';
 import type { Metadata } from 'next';
 import RecipeLayout from '../recipe-layout';
@@ -41,15 +41,20 @@ export default async function RecipeForksPage({
   }
 
   // data
-  const [recipeData, userData] = await Promise.all([
+  const [recipeData, userData, forksData] = await Promise.all([
     getRecipeData(id),
     handleUserNavigation(Page.ANONYMOUS),
+    getRecipeForks(id),
   ]);
 
   if (!recipeData?.data) {
     log().Error(new Error(), [{ k: 'msg', v: 'failed to fetch recipe' }]);
     return notFound();
   }
+
+  const parentRecipeData = recipeData.data.branch
+    ? await getRecipeData(recipeData.data.branch)
+    : undefined;
 
   const mediaData = recipeData?.data?.root
     ? (await getRecipeMedia(recipeData?.data?.root)) ?? { data: [] }
@@ -61,7 +66,10 @@ export default async function RecipeForksPage({
       user={userData.user}
       media={mediaData.data || []}
     >
-      <RecipeForks user={userData.user} recipe={recipeData.data} />
+      <RecipeForks
+        forks={forksData}
+        parentRecipe={parentRecipeData?.data}
+      />
     </RecipeLayout>
   );
 }

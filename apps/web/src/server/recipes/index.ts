@@ -93,6 +93,42 @@ export const recipesRouter = router({
         logTrpc(new Error(), opts.input, s, 'recipes.getMediaByIDMutation');
       }
     }),
+  getForksByID: publicProcedure.input(z.string()).query(async (opts) => {
+    const api = await getAPIClient();
+    const s = performance.now();
+
+    try {
+      return await api.recipes.getApiRecipesForks(opts.input);
+    } catch (e) {
+      handleAPIError(e);
+    } finally {
+      logTrpc(new Error(), opts.input, s, 'recipes.getForksByID');
+    }
+  }),
+  getRevisionsByID: publicProcedure.input(z.string()).query(async (opts) => {
+    const api = await getAPIClient();
+    const s = performance.now();
+
+    try {
+      return await api.recipes.getApiRecipesRevisions1(opts.input);
+    } catch (e) {
+      handleAPIError(e);
+    } finally {
+      logTrpc(new Error(), opts.input, s, 'recipes.getRevisionsByID');
+    }
+  }),
+  getRevisionByID: publicProcedure.input(z.string()).query(async (opts) => {
+    const api = await getAPIClient();
+    const s = performance.now();
+
+    try {
+      return await api.recipes.getApiRecipesRevisions(opts.input);
+    } catch (e) {
+      handleAPIError(e);
+    } finally {
+      logTrpc(new Error(), opts.input, s, 'recipes.getRevisionByID');
+    }
+  }),
   fetch: publicProcedure
     .input(
       z
@@ -133,6 +169,18 @@ export const recipesRouter = router({
       handleAPIError(e);
     } finally {
       logTrpc(new Error(), opts.input, s, 'recipes.fork');
+    }
+  }),
+  forkRevision: publicProcedure.input(z.string()).mutation(async (opts) => {
+    const api = await getAPIClient();
+    const s = performance.now();
+
+    try {
+      return await api.recipes.postApiRecipesRevisionsFork(opts.input);
+    } catch (e) {
+      handleAPIError(e);
+    } finally {
+      logTrpc(new Error(), opts.input, s, 'recipes.forkRevision');
     }
   }),
   star: publicProcedure.input(z.string()).mutation(async (opts) => {

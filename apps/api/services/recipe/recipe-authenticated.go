@@ -138,15 +138,20 @@ func (s recipeService) ForkRecipeByID(ctx context.Context, recipeID string, fork
 
 	newRecipeDocRef := s.recipeCollection.NewDoc()
 	newRevisionDocRef := s.recipeRevisionsCollection.NewDoc()
+	forkedDate := time.Now().UTC()
 
 	recipe.Branch = recipe.ID
 	recipe.ID = newRecipeDocRef.ID
 
 	recipe.Author = forkAuthor
 	recipe.Contributors = []models.UserSummary{forkAuthor}
+	recipe.CreatedDate = forkedDate
+	recipe.UpdatedDate = forkedDate
 	recipe.CurrentRevision.Author = forkAuthor
 	recipe.CurrentRevision.ID = newRevisionDocRef.ID
 	recipe.CurrentRevision.RecipeID = newRecipeDocRef.ID
+	recipe.CurrentRevision.CreatedDate = forkedDate
+	recipe.CurrentRevision.UpdatedDate = forkedDate
 	recipe.Metadata.Forks = 0
 	recipe.Metadata.Stars = 0
 
@@ -159,6 +164,58 @@ func (s recipeService) ForkRecipeByID(ctx context.Context, recipeID string, fork
 	}
 
 	return recipe, nil
+}
+
+func (s recipeService) ForkRecipeByRevisionID(ctx context.Context, revisionID string, forkAuthor models.UserSummary) (*models.Recipe, error) {
+	revisionDoc, err := s.recipeRevisionsCollection.Doc(revisionID).Get(ctx)
+
+	if err != nil {
+		return nil, ErrRecipeRevisionNotFound
+	}
+
+	revision := new(models.RecipeRevision)
+	revisionDoc.DataTo(revision)
+
+	recipeDoc, err := s.recipeCollection.Doc(revision.RecipeID).Get(ctx)
+
+	if err != nil {
+		return nil, ErrRecipeNotFound
+	}
+
+	recipe := new(models.Recipe)
+	recipeDoc.DataTo(recipe)
+
+	newRecipeDocRef := s.recipeCollection.NewDoc()
+	newRevisionDocRef := s.recipeRevisionsCollection.NewDoc()
+	forkedDate := time.Now().UTC()
+
+	newRevision := *revision
+	newRevision.ID = newRevisionDocRef.ID
+	newRevision.RecipeID = newRecipeDocRef.ID
+	newRevision.Author = forkAuthor
+	newRevision.CreatedDate = forkedDate
+	newRevision.UpdatedDate = forkedDate
+
+	newRecipe := *recipe
+	newRecipe.Branch = recipe.ID
+	newRecipe.ID = newRecipeDocRef.ID
+	newRecipe.Author = forkAuthor
+	newRecipe.Contributors = []models.UserSummary{forkAuthor}
+	newRecipe.CurrentRevision = newRevision
+	newRecipe.Metadata.Forks = 0
+	newRecipe.Metadata.Stars = 0
+	newRecipe.CreatedDate = forkedDate
+	newRecipe.UpdatedDate = forkedDate
+
+	_, err = s.fire.Batch().Create(newRevisionDocRef, newRevision).Create(newRecipeDocRef, newRecipe).Update(recipeDoc.Ref, []firestore.Update{
+		{Path: "metadata.forks", Value: firestore.Increment(1)},
+	}).Commit(ctx)
+
+	if err != nil {
+		return nil, ErrUnableToForkRecipe
+	}
+
+	return &newRecipe, nil
 }
 
 func (s recipeService) StarRecipeByID(ctx context.Context, recipeID string, author models.UserSummary) (bool, error) {

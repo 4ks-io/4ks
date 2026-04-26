@@ -141,9 +141,11 @@ type stubRecipeService struct {
 	getRecipesByUsernameFn       func(context.Context, string, int) ([]*models.Recipe, error)
 	getRecipesByUserIDFn         func(context.Context, string, int) ([]*models.Recipe, error)
 	getRecipeMediaFn             func(context.Context, string) ([]*models.RecipeMedia, error)
+	getRecipeForksFn             func(context.Context, string) ([]*models.Recipe, error)
 	getRecipeRevisionsFn         func(context.Context, string) ([]*models.RecipeRevision, error)
 	getRecipeRevisionByIDFn      func(context.Context, string) (*models.RecipeRevision, error)
 	forkRecipeByIDFn             func(context.Context, string, models.UserSummary) (*models.Recipe, error)
+	forkRecipeByRevisionIDFn     func(context.Context, string, models.UserSummary) (*models.Recipe, error)
 	starRecipeByIDFn             func(context.Context, string, models.UserSummary) (bool, error)
 	updateRecipeByIDFn           func(context.Context, string, *dtos.UpdateRecipe) (*models.Recipe, error)
 	createMockBannerFn           func(string, string) []models.RecipeMediaVariant
@@ -219,6 +221,13 @@ func (s stubRecipeService) GetRecipeMedia(ctx context.Context, recipeID string) 
 	return nil, nil
 }
 
+func (s stubRecipeService) GetRecipeForks(ctx context.Context, recipeID string) ([]*models.Recipe, error) {
+	if s.getRecipeForksFn != nil {
+		return s.getRecipeForksFn(ctx, recipeID)
+	}
+	return nil, nil
+}
+
 func (s stubRecipeService) GetRecipeRevisions(ctx context.Context, recipeID string) ([]*models.RecipeRevision, error) {
 	if s.getRecipeRevisionsFn != nil {
 		return s.getRecipeRevisionsFn(ctx, recipeID)
@@ -236,6 +245,13 @@ func (s stubRecipeService) GetRecipeRevisionByID(ctx context.Context, revisionID
 func (s stubRecipeService) ForkRecipeByID(ctx context.Context, recipeID string, author models.UserSummary) (*models.Recipe, error) {
 	if s.forkRecipeByIDFn != nil {
 		return s.forkRecipeByIDFn(ctx, recipeID, author)
+	}
+	return nil, nil
+}
+
+func (s stubRecipeService) ForkRecipeByRevisionID(ctx context.Context, revisionID string, author models.UserSummary) (*models.Recipe, error) {
+	if s.forkRecipeByRevisionIDFn != nil {
+		return s.forkRecipeByRevisionIDFn(ctx, revisionID, author)
 	}
 	return nil, nil
 }

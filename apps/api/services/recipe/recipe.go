@@ -51,10 +51,12 @@ type Service interface {
 	GetRecipesByUsername(context.Context, string, int) ([]*models.Recipe, error)
 	GetRecipesByUserID(context.Context, string, int) ([]*models.Recipe, error)
 	GetRecipeMedia(context.Context, string) ([]*models.RecipeMedia, error)
+	GetRecipeForks(context.Context, string) ([]*models.Recipe, error)
 	GetRecipeRevisions(context.Context, string) ([]*models.RecipeRevision, error)
 	GetRecipeRevisionByID(context.Context, string) (*models.RecipeRevision, error)
 	// set
 	ForkRecipeByID(context.Context, string, models.UserSummary) (*models.Recipe, error)
+	ForkRecipeByRevisionID(context.Context, string, models.UserSummary) (*models.Recipe, error)
 	StarRecipeByID(context.Context, string, models.UserSummary) (bool, error)
 	// update
 	UpdateRecipeByID(context.Context, string, *dtos.UpdateRecipe) (*models.Recipe, error)

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Page, PageProps } from '@/libs/navigation';
 import { handleUserNavigation } from '@/libs/server/navigation';
 import { getRecipeIdFromPageParams } from '../navigation';
-import { getRecipeData, getRecipeMedia } from '../data';
+import { getRecipeData, getRecipeMedia, getRecipeRevisions } from '../data';
 import log from '@/libs/logger';
 import type { Metadata } from 'next';
 import RecipeLayout from '../recipe-layout';
@@ -41,9 +41,10 @@ export default async function RecipeVersionsPage({
   }
 
   // data
-  const [recipeData, userData] = await Promise.all([
+  const [recipeData, userData, revisionsData] = await Promise.all([
     getRecipeData(id),
     handleUserNavigation(Page.ANONYMOUS),
+    getRecipeRevisions(id),
   ]);
 
   if (!recipeData?.data) {
@@ -61,7 +62,11 @@ export default async function RecipeVersionsPage({
       user={userData.user}
       media={mediaData.data || []}
     >
-      <RecipeVersions user={userData.user} recipe={recipeData.data} />
+      <RecipeVersions
+        user={userData.user}
+        recipe={recipeData.data}
+        revisions={revisionsData}
+      />
     </RecipeLayout>
   );
 }
