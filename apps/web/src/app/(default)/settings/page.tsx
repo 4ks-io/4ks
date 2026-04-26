@@ -19,8 +19,6 @@ export const metadata: Metadata = {
 };
 
 export default async function SettingsPage({
-  params,
-  searchParams,
 }: PageProps) {
   const { user } = await handleUserNavigation(Page.AUTHENTICATED);
   const session = await getSession();

@@ -8,11 +8,8 @@ const nextConfig = {
   },
   productionBrowserSourceMaps: false,
   reactStrictMode: true,
-  swcMinify: true,
-  modularizeImports: {
-    '@mui/icons-material': {
-      transform: '@mui/icons-material/{{member}}',
-    },
+  experimental: {
+    optimizePackageImports: ['@mui/icons-material'],
   },
   // async rewrites() {
   //   return [

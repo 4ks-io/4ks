@@ -12,7 +12,7 @@ import NewRecipeButton from '@/components/NewRecipeButton';
 import FetchRecipeButton from '@/components/FetchRecipeButton';
 import Link from 'next/link';
 
-export default async function DefaultPage({ params, searchParams }: PageProps) {
+export default async function DefaultPage({}: PageProps) {
   const { user } = await handleUserNavigation(Page.ANONYMOUS);
 
   return (

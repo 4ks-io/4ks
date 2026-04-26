@@ -23,8 +23,8 @@ export enum Page {
 }
 
 export type PageProps = {
-  params: PagePropsParams;
-  searchParams: PagePropsSearchParams;
+  params: Promise<PagePropsParams>;
+  searchParams?: Promise<PagePropsSearchParams>;
 };
 
 export type RecipePropsParams = { id: string };

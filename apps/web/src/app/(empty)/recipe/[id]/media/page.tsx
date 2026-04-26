@@ -12,7 +12,7 @@ import RecipeMedia from '@/components/Recipe/RecipeMedia';
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { id, error } = getRecipeIdFromPageParams(params);
+  const { id, error } = getRecipeIdFromPageParams(await params);
   if (error) {
     return notFound();
   }
@@ -34,9 +34,8 @@ export async function generateMetadata({
 
 export default async function RecipeMediaPage({
   params,
-  searchParams,
 }: PageProps) {
-  const { id, error } = getRecipeIdFromPageParams(params);
+  const { id, error } = getRecipeIdFromPageParams(await params);
   if (error) {
     return notFound();
   }

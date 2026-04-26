@@ -11,8 +11,6 @@ export const metadata: Metadata = {
 };
 
 export default async function RegisterPage({
-  params,
-  searchParams,
 }: PageProps) {
   const { session } = await handleUserNavigation(Page.REGISTER);
 

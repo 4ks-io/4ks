@@ -18,8 +18,9 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
 export type ProfilePropsParams = { profile: string };
 
-export default async function ProfilePage({ params, searchParams }: PageProps) {
-  const username = (params as unknown as ProfilePropsParams).profile;
+export default async function ProfilePage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const username = (resolvedParams as unknown as ProfilePropsParams).profile;
   const user = await getUserData();
 
   const isCurrent = user?.username === username;
