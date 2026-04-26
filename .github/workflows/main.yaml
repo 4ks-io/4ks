@@ -9,7 +9,58 @@ permissions:
   id-token: write
 
 jobs:
+  test:
+    name: test (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: web
+            runtime: node
+          - name: api
+            runtime: go
+            working_directory: .
+            test_command: AUTH0_DOMAIN=example.auth0.com AUTH0_AUDIENCE=test go test ./...
+          - name: fetcher
+            runtime: go
+            working_directory: apps/fetcher
+            test_command: API_FETCHER_PSK=01234567890123456789012345678901
+              API_ENDPOINT_URL=https://api.4ks.io/api/_fetcher/recipes
+              PUBSUB_PROJECT_ID=test PUBSUB_TOPIC_ID=test go test ./...
+          - name: uploader
+            runtime: go
+            working_directory: apps/media-upload
+            test_command: go test ./...
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        if: matrix.runtime == 'go'
+        with:
+          go-version-file: go.work
+      - name: Test ${{ matrix.name }}
+        if: matrix.runtime == 'go'
+        working-directory: ${{ matrix.working_directory }}
+        run: ${{ matrix.test_command }}
+      - uses: actions/setup-node@v4
+        if: matrix.runtime == 'node'
+        with:
+          node-version: 25.9.0
+          cache: pnpm
+      - name: Enable corepack
+        if: matrix.runtime == 'node'
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.28.0 --activate
+      - name: Install dependencies
+        if: matrix.runtime == 'node'
+        run: pnpm install --frozen-lockfile
+      - name: Test ${{ matrix.name }}
+        if: matrix.runtime == 'node'
+        run: pnpm --filter @4ks/web test
+
   build:
+    needs: test
     uses: ./.github/workflows/build-publish.yaml
     with:
       environment: dev
