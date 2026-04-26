@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
-import { UserProvider } from '@auth0/nextjs-auth0/client';
+import { Auth0Provider } from '@auth0/nextjs-auth0/client';
 import ThemeRegistry from '@/components/ThemeRegistry/ThemeRegistry';
 import TrpcProvider from '@/trpc/Provider';
 import { Inter } from 'next/font/google';
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en" className={inter.className}>
       <ThemeRegistry>
         <TrpcProvider>
-          <UserProvider>
+          <Auth0Provider>
             <SearchContextProvider
               typesenseApikey={typesenseApikey}
               typesenseUrl={typesenseUrl}
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             >
               <body>{children}</body>
             </SearchContextProvider>
-          </UserProvider>
+          </Auth0Provider>
         </TrpcProvider>
       </ThemeRegistry>
     </html>

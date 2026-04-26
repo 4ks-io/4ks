@@ -1,20 +1,26 @@
-import { getSession, Session } from '@auth0/nextjs-auth0';
+import type { SessionData } from '@auth0/nextjs-auth0/types';
+import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import { auth0 } from '@/libs/auth0';
 import { serverClient } from '@/trpc/serverClient';
 import log from '@/libs/logger';
 import { models_User } from '@4ks/api-fetch';
-import { Page } from '../navigation';
-import { authLoginPath } from '@/libs/navigation';
+import { buildAuthLoginPath, Page } from '../navigation';
 
 export type UserSession = {
   user: models_User | undefined;
-  session: Session | undefined;
+  session: SessionData | undefined;
   isAuthenticated: boolean;
   isRegistered: boolean;
 };
 
 export async function handleUserNavigation(page: Page): Promise<UserSession> {
-  const session = await getSession();
+  // Route protection remains explicit in server code. Middleware keeps the
+  // session fresh and mounts /auth/*, while authenticated pages still redirect
+  // here when a session is required.
+  const session = await auth0.getSession();
+  const requestHeaders = await headers();
+  const currentPath = requestHeaders.get('x-url-pathname') ?? undefined;
   log().Debug(new Error(), [
     { k: 'page', v: page },
     { k: 'session', v: !!session },
@@ -23,7 +29,7 @@ export async function handleUserNavigation(page: Page): Promise<UserSession> {
   if (!session) {
     // unauthenticated
     if ([Page.REGISTER, Page.AUTHENTICATED].includes(page)) {
-      redirect(authLoginPath);
+      redirect(buildAuthLoginPath(currentPath));
     }
 
     // anonymous

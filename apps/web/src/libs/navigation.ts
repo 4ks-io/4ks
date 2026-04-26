@@ -1,7 +1,35 @@
-export const authLoginPath = '/app/auth/login';
-export const authLogoutPath = '/app/auth/logout';
+export const authLoginPath = '/auth/login';
+export const authLogoutPath = '/auth/logout';
 
 export const isSSR = typeof window === 'undefined';
+
+export function buildAuthLoginPath(returnTo?: string) {
+  if (!returnTo) {
+    return authLoginPath;
+  }
+
+  const params = new URLSearchParams({
+    returnTo,
+  });
+
+  return `${authLoginPath}?${params.toString()}`;
+}
+
+export function navigateToAuthRoute(path: string) {
+  if (typeof window !== 'undefined') {
+    window.location.assign(path);
+  }
+}
+
+export function navigateToLogin(returnTo?: string) {
+  const currentPath =
+    returnTo ??
+    (typeof window !== 'undefined'
+      ? `${window.location.pathname}${window.location.search}${window.location.hash}`
+      : undefined);
+
+  navigateToAuthRoute(buildAuthLoginPath(currentPath));
+}
 
 // tr@ck: deprecated
 // https://stackoverflow.com/questions/10527983/best-way-to-detect-mac-os-x-or-windows-computers-with-javascript-or-jquery

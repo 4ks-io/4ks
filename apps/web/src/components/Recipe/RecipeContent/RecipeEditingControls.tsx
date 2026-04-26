@@ -1,7 +1,10 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { trpc } from '@/trpc/client';
-import { normalizeForURL, authLoginPath } from '@/libs/navigation';
+import {
+  normalizeForURL,
+  navigateToLogin,
+} from '@/libs/navigation';
 import { useRouter } from 'next/navigation';
 import { useRecipeContext } from '@/providers/recipe-context';
 import Snackbar from '@mui/material/Snackbar';
@@ -257,7 +260,7 @@ export default function RecipeEditingControls({
             left: 'auto',
             position: 'fixed',
           }}
-          onClick={() => router.push(authLoginPath)}
+          onClick={() => navigateToLogin()}
         >
           <LockPersonIcon />
         </Fab>

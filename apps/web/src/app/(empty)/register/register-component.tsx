@@ -14,7 +14,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import UsernameSpecification from '@/components/UsernameSpecifications';
-import { Claims } from '@auth0/nextjs-auth0';
+import type { User } from '@auth0/nextjs-auth0/types';
 
 type formValidationError = {
   validation: string;
@@ -43,7 +43,7 @@ function NewInputMap() {
 }
 
 type RegisterComponentProps = {
-  user: Claims;
+  user: User;
 };
 
 export default function RegisterComponent({ user }: RegisterComponentProps) {

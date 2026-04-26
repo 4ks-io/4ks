@@ -1,19 +1,39 @@
 import { describe, it, expect } from 'vitest';
 import {
+  buildAuthLoginPath,
   authLoginPath,
   authLogoutPath,
   isSSR,
+  navigateToLogin,
   Page,
   normalizeForURL,
 } from './navigation';
 
 describe('auth path constants', () => {
   it('authLoginPath points to the Auth0 login handler', () => {
-    expect(authLoginPath).toBe('/app/auth/login');
+    expect(authLoginPath).toBe('/auth/login');
   });
 
   it('authLogoutPath points to the Auth0 logout handler', () => {
-    expect(authLogoutPath).toBe('/app/auth/logout');
+    expect(authLogoutPath).toBe('/auth/logout');
+  });
+});
+
+describe('buildAuthLoginPath', () => {
+  it('returns the bare login path when no returnTo is provided', () => {
+    expect(buildAuthLoginPath()).toBe('/auth/login');
+  });
+
+  it('adds the returnTo query parameter when provided', () => {
+    expect(buildAuthLoginPath('/recipe/abc?tab=media')).toBe(
+      '/auth/login?returnTo=%2Frecipe%2Fabc%3Ftab%3Dmedia'
+    );
+  });
+});
+
+describe('navigateToLogin', () => {
+  it('is defined for client-side full-page login navigations', () => {
+    expect(navigateToLogin).toBeTypeOf('function');
   });
 });
 

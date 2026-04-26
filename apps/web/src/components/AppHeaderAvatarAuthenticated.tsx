@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { authLogoutPath } from '@/libs/navigation';
+import { authLogoutPath, navigateToAuthRoute } from '@/libs/navigation';
 import Menu from '@mui/material/Menu';
 import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
@@ -43,8 +43,8 @@ export default function AppHeaderAvatarAuthenticated({
   }
 
   function handleLogoutOnClick() {
-    router.push(authLogoutPath);
     setAnchorEl(null);
+    navigateToAuthRoute(authLogoutPath);
   }
 
   function ProfileMenu() {

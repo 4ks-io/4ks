@@ -1,11 +1,11 @@
-import { getSession } from '@auth0/nextjs-auth0';
+import { auth0 } from '@/libs/auth0';
 import { serverClient } from '@/trpc/serverClient';
 import { TRPCError } from '@trpc/server';
 import { getHTTPStatusCodeFromError } from '@trpc/server/http';
 
 // user
 export async function getUserData() {
-  const session = await getSession();
+  const session = await auth0.getSession();
 
   if (!session) return undefined;
 

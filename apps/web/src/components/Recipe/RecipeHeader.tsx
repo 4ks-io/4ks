@@ -3,7 +3,10 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/trpc/client';
-import { normalizeForURL, authLoginPath } from '@/libs/navigation';
+import {
+  normalizeForURL,
+  navigateToLogin,
+} from '@/libs/navigation';
 import { useRecipeContext } from '@/providers/recipe-context';
 import RecipeMediaBanner from './RecipeMediaBanner/RecipeMediaBanner';
 import { models_Recipe, models_User } from '@4ks/api-fetch';
@@ -103,7 +106,7 @@ export function RecipeHeader({ user, recipe }: RecipeHeaderProps) {
 
   function forkThisRecipe() {
     if (!isAuthenticated) {
-      router.push(authLoginPath);
+      navigateToLogin();
       return;
     }
 
@@ -114,7 +117,7 @@ export function RecipeHeader({ user, recipe }: RecipeHeaderProps) {
 
   function starThisRecipe() {
     if (!isAuthenticated) {
-      router.push(authLoginPath);
+      navigateToLogin();
       return;
     }
     setStarActionMutex(true);

@@ -1,9 +1,8 @@
 import React from 'react';
-import Link from 'next/link';
-import { getSession } from '@auth0/nextjs-auth0';
 import UpdateUsername from '@/components/UpdateUsername';
 import { Page, PageProps } from '@/libs/navigation';
 import { handleUserNavigation } from '@/libs/server/navigation';
+import { auth0 } from '@/libs/auth0';
 import type { Metadata } from 'next';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -21,7 +20,7 @@ export const metadata: Metadata = {
 export default async function SettingsPage({
 }: PageProps) {
   const { user } = await handleUserNavigation(Page.AUTHENTICATED);
-  const session = await getSession();
+  const session = await auth0.getSession();
 
   if (!session || !session?.user || !user || !user?.username) {
     return <div>Error</div>;
@@ -56,7 +55,9 @@ export default async function SettingsPage({
           </Stack>
         </Container>
       </Box>
-      {session?.accessToken && <DeveloperTools t={session.accessToken} />}
+      {session?.tokenSet.accessToken && (
+        <DeveloperTools t={session.tokenSet.accessToken} />
+      )}
     </>
   );
 }

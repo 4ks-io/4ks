@@ -9,9 +9,6 @@ COPY /pnpm* .
 RUN pnpm install
 
 FROM build
-# NEXT_PUBLIC_AUTH0 build-time vars
-ENV NEXT_PUBLIC_AUTH0_PROFILE=/app/auth/me
-ENV NEXT_PUBLIC_AUTH0_LOGIN=/app/auth/login
 
 WORKDIR /code
 COPY /PACKAGE_JSON /code

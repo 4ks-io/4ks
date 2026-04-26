@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { publicProcedure, router } from '@/server/trpc';
-import { getAccessToken } from '@auth0/nextjs-auth0';
+import { auth0 } from '@/libs/auth0';
 import { getAPIClient, handleAPIError } from '..';
 import { headAuthenticatedUser } from './headAuthenticatedUser';
 import { logTrpc } from '@/server/trpc';
@@ -31,11 +31,11 @@ export const usersRouter = router({
     }
   }),
   exists: publicProcedure.query(async () => {
-    const { accessToken } = await getAccessToken();
+    const { token } = await auth0.getAccessToken();
     const s = performance.now();
 
     try {
-      return await headAuthenticatedUser(`${accessToken}`);
+      return await headAuthenticatedUser(token);
     } catch (e) {
       handleAPIError(e);
     } finally {

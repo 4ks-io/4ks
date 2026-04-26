@@ -127,8 +127,14 @@ docker_build(
         sync('libs/ts/api-fetch/dist', '/code/libs/ts/api-fetch/dist'),
         sync('apps/web', '/code/apps/web'),
         run(
-            'pnpm install',
-            trigger=['package.json', 'apps/web/package.json']
+            'rm -rf /code/apps/web/.next && pnpm install',
+            trigger=[
+                'PACKAGE_JSON',
+                'package.json',
+                'apps/web/package.json',
+                'pnpm-lock.yaml',
+                'pnpm-workspace.yaml',
+            ]
         )
     ]
 )

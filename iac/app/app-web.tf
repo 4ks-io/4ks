@@ -50,7 +50,7 @@ resource "google_cloud_run_v2_service" "web" {
       }
       # auth0
       env {
-        name  = "AUTH0_BASE_URL"
+        name  = "APP_BASE_URL"
         value = local.web_url
       }
       env {
@@ -76,30 +76,12 @@ resource "google_cloud_run_v2_service" "web" {
         }
       }
       env {
-        name  = "AUTH0_ISSUER_BASE_URL"
-        value = "https://${var.auth0_domain[terraform.workspace]}"
+        name  = "AUTH0_DOMAIN"
+        value = var.auth0_domain[terraform.workspace]
       }
       env {
         name  = "AUTH0_AUDIENCE"
         value = local.api_url
-      }
-      # tr@ck: validate and fix auto session refresh
-      # https://stackoverflow.com/questions/76813923/how-to-avoid-warning-message-when-getting-user-information-on-next-js-13-server
-      #env {
-      #  name  = "AUTH0_SESSION_AUTO_SAVE"
-      #  value = "false"
-      #}
-      env {
-        name  = "AUTH0_CALLBACK"
-        value = "/app/auth/callback"
-      }
-      # env {
-      #   name  = "NEXT_PUBLIC_AUTH0_LOGIN"
-      #   value = "/app/auth/login"
-      # }
-      env {
-        name  = "NEXT_PUBLIC_AUTH0_PROFILE"
-        value = "/app/auth/me"
       }
       # typesense
       env {
