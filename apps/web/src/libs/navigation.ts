@@ -31,10 +31,20 @@ export function navigateToLogin(returnTo?: string) {
   navigateToAuthRoute(buildAuthLoginPath(currentPath));
 }
 
+export const isMobileDevice = () => {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+};
+
 // tr@ck: deprecated
 // https://stackoverflow.com/questions/10527983/best-way-to-detect-mac-os-x-or-windows-computers-with-javascript-or-jquery
 export const isMac = () => {
-  if (navigator) {
+  if (typeof navigator !== 'undefined') {
     // console.log('navigator.platform', navigator.platform);
     return navigator.platform.indexOf('Mac') > -1;
   }

@@ -1,8 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { trpc } from '@/trpc/client';
 import {
   normalizeForURL,
+  isMac,
   navigateToLogin,
 } from '@/libs/navigation';
 import { useRouter } from 'next/navigation';
@@ -44,10 +45,33 @@ export default function RecipeEditingControls({
   const [createSubmit, setCreateSubmit] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [saveDisabled, setSaveDisabled] = useState(true);
+  const saveTooltipTitle = isMac() ? 'Save (Cmd+S)' : 'Save (Ctrl+S)';
 
   const isAuthenticated = !!user?.id;
   const isContributor = isRecipeContributor();
   const isNew = recipe?.id == '0';
+  const shortcutStateRef = useRef({
+    isContributor,
+    isNew,
+    saveDisabled,
+    actionInProgress: rtx.actionInProgress,
+  });
+  const saveRecipeChangesRef = useRef(saveRecipeChanges);
+  const createRecipeRef = useRef(createRecipe);
+
+  useEffect(() => {
+    shortcutStateRef.current = {
+      isContributor,
+      isNew,
+      saveDisabled,
+      actionInProgress: rtx.actionInProgress,
+    };
+  }, [isContributor, isNew, rtx.actionInProgress, saveDisabled]);
+
+  useEffect(() => {
+    saveRecipeChangesRef.current = saveRecipeChanges;
+    createRecipeRef.current = createRecipe;
+  });
 
   useEffect(() => {
     if (rtx.recipe.currentRevision?.name == '') {
@@ -134,6 +158,46 @@ export default function RecipeEditingControls({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forkData]);
 
+  useEffect(() => {
+    function onSaveShortcut(event: KeyboardEvent) {
+      const isSaveShortcut =
+        event.key.toLowerCase() === 's' &&
+        ((isMac() && event.metaKey) || (!isMac() && event.ctrlKey));
+
+      if (!isSaveShortcut) {
+        return;
+      }
+
+      const {
+        isContributor,
+        isNew,
+        saveDisabled,
+        actionInProgress,
+      } = shortcutStateRef.current;
+
+      if (saveDisabled || actionInProgress) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (isNew) {
+        createRecipeRef.current();
+        return;
+      }
+
+      if (isContributor) {
+        saveRecipeChangesRef.current();
+      }
+    }
+
+    window.addEventListener('keydown', onSaveShortcut);
+
+    return () => {
+      window.removeEventListener('keydown', onSaveShortcut);
+    };
+  }, []);
+
   function isRecipeContributor() {
     if (!user || !user.id) return false;
     if (!recipe?.contributors) return false;
@@ -215,7 +279,7 @@ export default function RecipeEditingControls({
     );
 
     const save = (
-      <Tooltip title="Save">
+      <Tooltip title={saveTooltipTitle}>
         <span style={{ display: 'inline-flex', ...floatingFabStyle }}>
           <Fab
             disabled={saveDisabled}

@@ -4,7 +4,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import InputAdornment from '@mui/material/InputAdornment';
 import TextField from '@mui/material/TextField';
 import Chip from '@mui/material/Chip';
-import { isMac } from '@/libs/navigation';
+import { isMac, isMobileDevice } from '@/libs/navigation';
 import Tooltip from '@mui/material/Tooltip';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -15,6 +15,8 @@ type SearchBoxProps = {
 };
 
 export default function SearchBox({ value, onClick, onClear }: SearchBoxProps) {
+  const showShortcut = !isMobileDevice();
+
   return (
     <TextField
       id="searchBox"
@@ -34,11 +36,13 @@ export default function SearchBox({ value, onClick, onClear }: SearchBoxProps) {
         ),
         endAdornment: (
           <InputAdornment position="end">
-            <Chip
-              label={isMac() ? '⌘+K' : 'Ctrl+K'}
-              size="small"
-              variant="outlined"
-            />
+            {showShortcut && (
+              <Chip
+                label={isMac() ? '⌘+K' : 'Ctrl+K'}
+                size="small"
+                variant="outlined"
+              />
+            )}
             {value && value != '' && (
               <Tooltip title="Clear">
                 <CloseIcon

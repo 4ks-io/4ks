@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useContext, useReducer } from 'react';
+import React, { useEffect, useContext, useReducer, useRef } from 'react';
 import { initialState } from './search-context-init';
 import { SearchContextState } from './search-context-types';
 import {
@@ -8,6 +8,7 @@ import {
 } from './search-context-reducer';
 import TypesenseInstantSearchAdapter from 'typesense-instantsearch-adapter';
 import log from '@/libs/logger';
+import { isMobileDevice } from '@/libs/navigation';
 
 const SearchContext = React.createContext<SearchContextState>(initialState);
 
@@ -25,20 +26,31 @@ export function SearchContextProvider({
   typesensePath,
 }: SearchContextProviderProps) {
   const [state, dispatch] = useReducer(searchContextReducer, initialState);
+  const isOpenRef = useRef(state.open);
+
+  useEffect(() => {
+    isOpenRef.current = state.open;
+  }, [state.open]);
 
   useEffect(() => {
     log().Debug(new Error(), [{ k: 'SearchContextProvider', v: 'init' }]);
-    window.addEventListener('keydown', keyDownHandler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    function onKeyDown(event: KeyboardEvent) {
+      if (isMobileDevice()) {
+        return;
+      }
 
-  function keyDownHandler(event: KeyboardEvent) {
-    if (event.ctrlKey && event.key === 'k' && !state.open) {
-      handleOpen();
-      event.preventDefault();
-      // console.log('Control and K!');
+      if (event.ctrlKey && event.key === 'k' && !isOpenRef.current) {
+        handleOpen();
+        event.preventDefault();
+      }
     }
-  }
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
 
   function setResults(results: []) {
     dispatch({
