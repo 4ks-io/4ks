@@ -36,17 +36,15 @@ jobs:
           - name: api
             runtime: go
             working_directory: .
-            test_command: AUTH0_DOMAIN=example.auth0.com AUTH0_AUDIENCE=test go test ./...
+            test_env: AUTH0_DOMAIN=example.auth0.com AUTH0_AUDIENCE=test
           - name: fetcher
             runtime: go
             working_directory: apps/fetcher
-            test_command: API_FETCHER_PSK=01234567890123456789012345678901
-              API_ENDPOINT_URL=https://api.4ks.io/api/_fetcher/recipes
-              PUBSUB_PROJECT_ID=test PUBSUB_TOPIC_ID=test go test ./...
+            test_env: API_FETCHER_PSK=01234567890123456789012345678901 API_ENDPOINT_URL=https://api.4ks.io/api/_fetcher/recipes PUBSUB_PROJECT_ID=test PUBSUB_TOPIC_ID=test
           - name: uploader
             runtime: go
             working_directory: apps/media-upload
-            test_command: DISTRIBUTION_BUCKET=test FIRESTORE_PROJECT_ID=test go test ./...
+            test_env: DISTRIBUTION_BUCKET=test FIRESTORE_PROJECT_ID=test
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -60,10 +58,30 @@ jobs:
             utils/media-update/go.sum
             utils/recipe-search-refresh/go.sum
             utils/recipe-update/go.sum
+      - name: Install gotestsum
+        if: matrix.runtime == 'go'
+        run: go install gotest.tools/gotestsum@latest
       - name: Test ${{ matrix.name }}
         if: matrix.runtime == 'go'
         working-directory: ${{ matrix.working_directory }}
-        run: ${{ matrix.test_command }}
+        run: ${{ matrix.test_env }} gotestsum --format github-actions --jsonfile /tmp/go-test-${{ matrix.name }}.json -- ./...
+      - name: Go Test Summary
+        if: matrix.runtime == 'go' && always()
+        run: |
+          result="/tmp/go-test-${{ matrix.name }}.json"
+          [[ ! -f "$result" ]] && exit 0
+          passed=$(jq -r 'select(.Action=="pass" and .Test != null) | .Test' "$result" | wc -l | tr -d ' ')
+          failed=$(jq -r 'select(.Action=="fail" and .Test != null) | .Test' "$result" | wc -l | tr -d ' ')
+          skipped=$(jq -r 'select(.Action=="skip" and .Test != null) | .Test' "$result" | wc -l | tr -d ' ')
+          total=$((passed + failed + skipped))
+          icon=$([[ $failed -eq 0 ]] && echo "✅" || echo "❌")
+          {
+            echo "## Go Test Report"
+            echo ""
+            echo "### Summary"
+            echo "- **Test Results**: ${icon} ${passed} passes · ${total} total"
+            [[ $failed -gt 0 ]] && echo "- **Failed**: ❌ ${failed} failed"
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: pnpm/action-setup@v4
         if: matrix.runtime == 'node'
         with:
