@@ -1,3 +1,4 @@
+// Package main seeds development data by uploading sample recipes via the API.
 package main
 
 import (
@@ -128,7 +129,7 @@ func getRecipeFromLine(line string) dtos.CreateRecipe {
 
 func postRecipe(client http.Client, u string, t string, r dtos.CreateRecipe) {
 	// fmt.Println(index, " => ", r.Name)
-	index += 1
+	index++
 	data, _ := json.Marshal(r)
 
 	req, err := http.NewRequest(http.MethodPost, u, bytes.NewBuffer(data))
@@ -169,7 +170,7 @@ func main() {
 	// https://stackoverflow.com/questions/8757389/reading-a-file-line-by-line-in-go
 	line := 0
 	for scanner.Scan() {
-		line += 1
+		line++
 		// skip header
 		if line == 1 {
 			continue
