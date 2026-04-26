@@ -22,8 +22,4 @@ data "google_compute_backend_bucket" "media_static" {
   name = "${local.project}-static-backend"
 }
 
-# secrets
 
-data "google_secret_manager_secret_version" "api_fetcher_psk" {
-  secret = "api-fetcher-psk"
-}

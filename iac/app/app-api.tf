@@ -90,6 +90,8 @@ resource "google_pubsub_topic_iam_member" "api_fetcher_viewer" {
 resource "google_cloud_run_v2_service" "api" {
   name     = "api"
   location = var.region
+  # Public API service — JWT validation enforces access control at the application layer.
+  ingress = "INGRESS_TRAFFIC_ALL"
   traffic {
     percent = 100
     type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
@@ -189,8 +191,13 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
-        name  = "TYPESENSE_API_KEY"
-        value = var.typesense_api_key
+        name = "TYPESENSE_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = "typesense-api-key"
+            version = "latest"
+          }
+        }
       }
       env {
         name  = "MEDIA_FALLBACK_URL"
@@ -210,9 +217,13 @@ resource "google_cloud_run_v2_service" "api" {
         value = "${local.stage}-${local.org}"
       }
       env {
-        name  = "API_FETCHER_PSK"
-        value = data.google_secret_manager_secret_version.api_fetcher_psk.secret_data
-
+        name = "API_FETCHER_PSK"
+        value_source {
+          secret_key_ref {
+            secret  = "api-fetcher-psk"
+            version = "latest"
+          }
+        }
       }
     }
   }
@@ -220,12 +231,25 @@ resource "google_cloud_run_v2_service" "api" {
 
 
 
-resource "google_cloud_run_service_iam_member" "api_anonymous_access" {
-  service  = google_cloud_run_v2_service.api.name
+resource "google_cloud_run_v2_service_iam_member" "api_anonymous_access" {
   location = google_cloud_run_v2_service.api.location
+  name     = google_cloud_run_v2_service.api.name
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+resource "google_secret_manager_secret_iam_member" "api_typesense_api_key" {
+  secret_id = "typesense-api-key"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.api.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "api_fetcher_psk" {
+  secret_id = "api-fetcher-psk"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.api.email}"
+}
+
 
 resource "google_compute_region_network_endpoint_group" "api_neg" {
   name                  = "${local.project}-api-neg"

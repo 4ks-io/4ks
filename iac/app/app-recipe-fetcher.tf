@@ -37,6 +37,12 @@ resource "google_service_account" "fetcher" {
 #   member  = "serviceAccount:${google_service_account.fetcher.email}"
 # }
 
+resource "google_secret_manager_secret_iam_member" "fetcher_psk" {
+  secret_id = "api-fetcher-psk"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.fetcher.email}"
+}
+
 // allowed to consume messages
 resource "google_project_iam_member" "fetcher_pubsub_subscriber" {
   project = local.project
@@ -101,8 +107,14 @@ resource "google_cloudfunctions2_function" "fetcher" {
       PUBSUB_PROJECT_ID = local.project
       PUBSUB_TOPIC_ID   = google_pubsub_topic.fetcher.name
       API_ENDPOINT_URL  = "${google_cloud_run_v2_service.api.uri}/api/_fetcher/recipes"
-      API_FETCHER_PSK   = data.google_secret_manager_secret_version.api_fetcher_psk.secret_data
       LOG_EXECUTION_ID  = "true"
+    }
+
+    secret_environment_variables {
+      key        = "API_FETCHER_PSK"
+      project_id = local.project
+      secret     = "api-fetcher-psk"
+      version    = "latest"
     }
 
     # ingress_settings               = "ALLOW_ALL"

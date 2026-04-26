@@ -40,13 +40,6 @@ variable "feat_api_swagger_enabled_map" {
   }
 }
 
-# typesense
-variable "typesense_client_api_key_env_map" {
-  type        = map(string)
-  description = "Typesense search-only client API keys by Terraform workspace. Set as a sensitive Terraform Cloud variable."
-  sensitive   = true
-}
-
 variable "typesense_url_env_map" {
   type = map(string)
   default = {

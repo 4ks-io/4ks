@@ -1,6 +1,14 @@
+resource "google_service_account" "web" {
+  account_id   = "cloud-run-web-sa"
+  display_name = "Cloud Run Web"
+  description  = "Identity used by the Cloud Run web service"
+}
+
 resource "google_cloud_run_v2_service" "web" {
   name     = "web"
   location = var.region
+  # Public web service — accessible by end users via load balancer and run.app URL.
+  ingress = "INGRESS_TRAFFIC_ALL"
   traffic {
     percent = 100
     type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
@@ -11,6 +19,8 @@ resource "google_cloud_run_v2_service" "web" {
       min_instance_count = 0
       max_instance_count = 2
     }
+
+    service_account = google_service_account.web.email
 
     containers {
       image = "${local.container_registry}/web/app:${var.web_build_number}"
@@ -48,20 +58,26 @@ resource "google_cloud_run_v2_service" "web" {
         value = var.auth0_client_id_env_map[terraform.workspace]
       }
       env {
-        name  = "AUTH0_CLIENT_SECRET"
-        value = var.auth0_client_secret
+        name = "AUTH0_CLIENT_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "auth0-client-secret"
+            version = "latest"
+          }
+        }
       }
       env {
-        name  = "AUTH0_SECRET"
-        value = var.auth0_secret
+        name = "AUTH0_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "auth0-session-secret"
+            version = "latest"
+          }
+        }
       }
       env {
         name  = "AUTH0_ISSUER_BASE_URL"
         value = "https://${var.auth0_domain[terraform.workspace]}"
-      }
-      env {
-        name  = "AUTH0_BASE_URL"
-        value = local.web_url
       }
       env {
         name  = "AUTH0_AUDIENCE"
@@ -103,8 +119,13 @@ resource "google_cloud_run_v2_service" "web" {
         value = var.typesense_url_env_map[terraform.workspace]
       }
       env {
-        name  = "TYPESENSE_API_KEY"
-        value = var.typesense_client_api_key_env_map[terraform.workspace]
+        name = "TYPESENSE_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = "typesense-search-api-key"
+            version = "latest"
+          }
+        }
       }
       env {
         name  = "MEDIA_FALLBACK_URL"
@@ -116,12 +137,31 @@ resource "google_cloud_run_v2_service" "web" {
 
 }
 
-resource "google_cloud_run_service_iam_member" "web_anonymous_access" {
-  service  = google_cloud_run_v2_service.web.name
+resource "google_cloud_run_v2_service_iam_member" "web_anonymous_access" {
   location = google_cloud_run_v2_service.web.location
+  name     = google_cloud_run_v2_service.web.name
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+resource "google_secret_manager_secret_iam_member" "web_auth0_client_secret" {
+  secret_id = "auth0-client-secret"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.web.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "web_auth0_session_secret" {
+  secret_id = "auth0-session-secret"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.web.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "web_typesense_search_api_key" {
+  secret_id = "typesense-search-api-key"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.web.email}"
+}
+
 
 resource "google_compute_region_network_endpoint_group" "web_neg" {
   name                  = "${local.project}-web-neg"
