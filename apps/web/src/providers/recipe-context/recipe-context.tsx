@@ -52,8 +52,8 @@ export function RecipeContextProvider({
     // prevent infinite loop
     if (!mediaMutex) return;
 
-    const { isLoading, isError, isSuccess, data } = mediaData;
-    if (isLoading || isError || !isSuccess) {
+    const { isPending, isError, isSuccess, data } = mediaData;
+    if (isPending || isError || !isSuccess) {
       return;
     }
     setMediaMutex(false);
@@ -68,8 +68,8 @@ export function RecipeContextProvider({
     // prevent infinite loop
     if (!recipeMutex) return;
 
-    const { isLoading, isError, isSuccess, data } = recipeData;
-    if (isLoading || isError || !isSuccess) {
+    const { isPending, isError, isSuccess, data } = recipeData;
+    if (isPending || isError || !isSuccess) {
       return;
     }
     setRecipeMutex(false);

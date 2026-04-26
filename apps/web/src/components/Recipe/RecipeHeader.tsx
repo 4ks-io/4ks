@@ -77,7 +77,7 @@ export function RecipeHeader({ user, recipe }: RecipeHeaderProps) {
   }, [rtx?.recipe?.currentRevision]);
 
   useEffect(() => {
-    if (!forkActionMutex || forkData.isLoading) {
+    if (!forkActionMutex || forkData.isPending) {
       return;
     }
     if (forkData.isSuccess) {
@@ -90,7 +90,7 @@ export function RecipeHeader({ user, recipe }: RecipeHeaderProps) {
   }, [forkData]);
 
   useEffect(() => {
-    if (!starActionMutex || starData.isLoading) {
+    if (!starActionMutex || starData.isPending) {
       return;
     }
 
@@ -261,7 +261,13 @@ export function RecipeHeader({ user, recipe }: RecipeHeaderProps) {
             // variant="standard"
             size="small"
             sx={{ width: '100%' }}
-            inputProps={{ style: { fontSize: 28 } }} // font size of input text
+            inputProps={{
+              // Browser extensions can inject attributes onto inputs before
+              // hydration. Suppress that attribute-only mismatch here without
+              // masking actual tree-shape hydration bugs.
+              suppressHydrationWarning: true,
+              style: { fontSize: 28 },
+            }} // font size of input text
             InputProps={{
               disableUnderline: true,
               // startAdornment: titleFocus ? (

@@ -49,9 +49,9 @@ export default function UpdateUsername(props: UpdateUsernameProps) {
 
   // handle formData mutation effects
   useEffect(() => {
-    const { isLoading, isError, isSuccess, data } = formData;
+    const { isPending, isSuccess } = formData;
 
-    if (!formSubmit || isLoading) {
+    if (!formSubmit || isPending) {
       return;
     }
 

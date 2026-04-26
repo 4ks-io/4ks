@@ -125,7 +125,15 @@ docker_build(
     ],
     live_update=[
         sync('libs/ts/api-fetch/dist', '/code/libs/ts/api-fetch/dist'),
-        sync('apps/web', '/code/apps/web'),
+        # Never sync the entire apps/web tree because that includes .next.
+        # Partial .next updates race with the container's running `next dev`
+        # process and leave server/vendor chunks out of sync.
+        sync('apps/web/src', '/code/apps/web/src'),
+        sync('apps/web/public', '/code/apps/web/public'),
+        sync('apps/web/next.config.js', '/code/apps/web/next.config.js'),
+        sync('apps/web/tsconfig.json', '/code/apps/web/tsconfig.json'),
+        sync('apps/web/vitest.config.ts', '/code/apps/web/vitest.config.ts'),
+        sync('apps/web/package_json.sh', '/code/apps/web/package_json.sh'),
         run(
             'rm -rf /code/apps/web/.next && pnpm install',
             trigger=[

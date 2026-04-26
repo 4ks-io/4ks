@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { isSSR } from '@/libs/navigation';
 import Stack from '@mui/material/Stack';
 import { models_Instruction } from '@4ks/api-fetch';
 import { useRecipeContext } from '@/providers/recipe-context';
@@ -22,7 +21,14 @@ type RecipeInstructionsProps = {
 
 export default function RecipeInstructions(props: RecipeInstructionsProps) {
   const [instructions, setInstructions] = useState(props.instructions);
+  const [mounted, setMounted] = useState(false);
   const rtx = useRecipeContext();
+
+  useEffect(() => {
+    // Keep the first client render identical to SSR output. The DnD tree only
+    // becomes stable after mount, so we swap to it in an effect.
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // skip if undefined
@@ -87,7 +93,7 @@ export default function RecipeInstructions(props: RecipeInstructionsProps) {
         </IconButton>
       </Stack>
 
-      {isSSR ? (
+      {!mounted ? (
         fallback
       ) : (
         <RecipeDraggableInstructions

@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { isSSR } from '@/libs/navigation';
+import React, { useEffect, useState } from 'react';
 import { models_Instruction } from '@4ks/api-fetch';
 import Stack from '@mui/material/Stack';
 import DragHandleIcon from '@mui/icons-material/DragIndicator';
@@ -24,6 +23,13 @@ export default function RecipeInstruction({
 }: RecipeInstructionProps) {
   const [active, setActive] = useState(false);
   const [text, setText] = useState(data.text || '');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // MUI renders a different structure for multiline fields, so defer that
+    // client-only enhancement until after hydration.
+    setMounted(true);
+  }, []);
 
   function handleTextChange(event: React.ChangeEvent<HTMLInputElement>) {
     setText(`${event.target.value}`);
@@ -48,6 +54,11 @@ export default function RecipeInstruction({
   }
 
   const inputProps = { disableUnderline: true, readOnly: false };
+  const htmlInputProps = {
+    // Some browser extensions mutate native input attributes before React
+    // hydrates. Suppress those attribute-only warnings for these editor fields.
+    suppressHydrationWarning: true,
+  };
 
   return (
     <Stack style={isDragging ? { backgroundColor: '#E65100' } : {}}>
@@ -58,7 +69,7 @@ export default function RecipeInstruction({
             value={index + 1}
             InputProps={{ disableUnderline: true, readOnly: true }}
             sx={{ width: 20 }}
-            inputProps={{ style: { fontSize: 20 } }}
+            inputProps={{ ...htmlInputProps, style: { fontSize: 20 } }}
           />
         )}
         {active && (
@@ -75,10 +86,10 @@ export default function RecipeInstruction({
           onFocus={handleFocus}
           onBlur={handleBlur}
           onChange={handleTextChange}
-          multiline={!isSSR}
+          multiline={mounted}
           InputProps={inputProps}
           sx={{ paddingLeft: 1, paddingTop: '0.5em' }}
-          inputProps={{ style: { fontSize: 20 } }}
+          inputProps={{ ...htmlInputProps, style: { fontSize: 20 } }}
         />
         {active && (
           <IconButton aria-label="delete">

@@ -58,9 +58,9 @@ export default function RecipeEditingControls({
 
   // handle createData mutation effects
   useEffect(() => {
-    const { isLoading, isError, isSuccess, data } = createData;
+    const { isPending, isError } = createData;
 
-    if (!createSubmit || isLoading) {
+    if (!createSubmit || isPending) {
       return;
     }
 
@@ -84,9 +84,9 @@ export default function RecipeEditingControls({
 
   // handle updateData mutation effects
   useEffect(() => {
-    const { isLoading, isError, isSuccess, data } = updateData;
+    const { isPending, isError } = updateData;
 
-    if (!updateSubmit || isLoading) {
+    if (!updateSubmit || isPending) {
       return;
     }
 

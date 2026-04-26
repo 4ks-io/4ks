@@ -1,6 +1,5 @@
 'use client';
-import React, { useState } from 'react';
-import { isSSR } from '@/libs/navigation';
+import React, { useEffect, useState } from 'react';
 import { models_Ingredient } from '@4ks/api-fetch';
 import Stack from '@mui/material/Stack';
 import DragHandleIcon from '@mui/icons-material/DragIndicator';
@@ -27,6 +26,13 @@ export default function RecipeIngredient({
   const [quantity, setQuantity] = useState(data.quantity || '');
   const [name, setName] = useState(data.name || '');
   const [active, setActive] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // MUI renders a different structure for multiline fields, so defer that
+    // client-only enhancement until after hydration.
+    setMounted(true);
+  }, []);
 
   function handleQuantityChange(event: React.ChangeEvent<HTMLInputElement>) {
     setQuantity(`${event.target.value}`);
@@ -55,6 +61,11 @@ export default function RecipeIngredient({
   }
 
   const inputProps = { disableUnderline: true, readOnly: false };
+  const htmlInputProps = {
+    // Some browser extensions mutate native input attributes before React
+    // hydrates. Suppress those attribute-only warnings for these editor fields.
+    suppressHydrationWarning: true,
+  };
 
   return (
     <Stack style={isDragging ? { backgroundColor: '#E65100' } : {}}>
@@ -73,10 +84,10 @@ export default function RecipeIngredient({
           onFocus={handleFocus}
           onBlur={handleBlur}
           onChange={handleQuantityChange}
-          multiline={!isSSR}
+          multiline={mounted}
           InputProps={inputProps}
           sx={{ paddingLeft: 1, width: '96px', paddingTop: '0.5em' }}
-          inputProps={{ style: { fontSize: 20 } }}
+          inputProps={{ ...htmlInputProps, style: { fontSize: 20 } }}
         />
         <TextField
           fullWidth
@@ -87,10 +98,10 @@ export default function RecipeIngredient({
           onFocus={handleFocus}
           onBlur={handleBlur}
           onChange={handleNameChange}
-          multiline={!isSSR}
+          multiline={mounted}
           InputProps={inputProps}
           sx={{ paddingLeft: 1, paddingTop: '8px' }}
-          inputProps={{ style: { fontSize: 20 } }}
+          inputProps={{ ...htmlInputProps, style: { fontSize: 20 } }}
         />
         {active && (
           <IconButton aria-label="delete">

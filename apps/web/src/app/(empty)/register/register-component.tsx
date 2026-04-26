@@ -174,8 +174,8 @@ export default function RegisterComponent({ user }: RegisterComponentProps) {
 
   // handle formData mutation effects
   useEffect(() => {
-    const { isLoading, isError, isSuccess, data } = formData;
-    if (isLoading) {
+    const { isPending, isError, isSuccess } = formData;
+    if (isPending) {
       return;
     }
     if (isSuccess) {
@@ -227,12 +227,12 @@ export default function RegisterComponent({ user }: RegisterComponentProps) {
 
   // handle username query mutation effects
   useEffect(() => {
-    const { isLoading, isError, data } = nameData;
+    const { isPending, isError, data } = nameData;
     // ignore previous queries
     if (data?.username != username) {
       return;
     }
-    if (isLoading) {
+    if (isPending) {
       return;
     }
     if (isError || !data) {

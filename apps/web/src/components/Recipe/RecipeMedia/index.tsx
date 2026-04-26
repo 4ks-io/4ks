@@ -87,9 +87,9 @@ export default function RecipeMedia({ user, recipe, media }: RecipeMediaProps) {
   );
 
   useEffect(() => {
-    const { isLoading, isError, isSuccess, data } = signedURLData;
+    const { isPending, isError, isSuccess, data } = signedURLData;
 
-    if (isLoading || !fetchingSignedURL) {
+    if (isPending || !fetchingSignedURL) {
       return;
     }
 

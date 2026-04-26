@@ -36,8 +36,8 @@ export default function RecipeSettings({ recipe }: RecipeSettingsProps) {
   };
 
   React.useEffect(() => {
-    const { isLoading, isSuccess } = deleteMutation;
-    if (!deleteMutex || isLoading) {
+    const { isPending, isSuccess } = deleteMutation;
+    if (!deleteMutex || isPending) {
       return;
     }
 

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { serverClient } from '@/trpc/serverClient';
 import { Page, PageProps } from '@/libs/navigation';
 import { getUserData } from '@/libs/server/data';
-import { dtos_GetRecipesByUsernameResponse } from '@4ks/api-fetch';
+import { dtos_GetRecipesByUsernameResponse, models_UserEvent } from '@4ks/api-fetch';
 import { getHTTPStatusCodeFromError } from '@trpc/server/http';
 import { TRPCError } from '@trpc/server';
 import { notFound } from 'next/navigation';
@@ -62,7 +62,7 @@ export default async function ProfilePage({ params }: PageProps) {
             <>
               <h3>Events</h3>
               <ul style={{ listStyleType: 'none', paddingInlineStart: '0px' }}>
-                {user.events?.map((e) => {
+                {user.events?.map((e: models_UserEvent) => {
                   if (!e || !e.data) {
                     return null;
                   }

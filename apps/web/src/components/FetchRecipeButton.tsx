@@ -34,7 +34,7 @@ export default function FetchRecipeButton() {
   const formData = trpc.recipes.fetch.useMutation();
 
   useEffect(() => {
-    if (!processing || !formData.isLoading) {
+    if (!processing || !formData.isPending) {
       return;
     }
     const { isError } = formData;
