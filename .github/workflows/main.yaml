@@ -80,7 +80,7 @@ jobs:
             echo ""
             echo "### Summary"
             echo "- **Test Results**: ${icon} ${passed} passes · ${total} total"
-            [[ $failed -gt 0 ]] && echo "- **Failed**: ❌ ${failed} failed"
+            if [[ $failed -gt 0 ]]; then echo "- **Failed**: ❌ ${failed} failed"; fi
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: pnpm/action-setup@v4
         if: matrix.runtime == 'node'
