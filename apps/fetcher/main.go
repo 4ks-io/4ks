@@ -29,8 +29,8 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-// FetcherRequest is a struct to hold the fetcher request data
-type FetcherRequest struct {
+// Request holds the incoming Pub/Sub payload for a recipe fetch job.
+type Request struct {
 	URL         string    `json:"url"`
 	UserID      string    `json:"userId"`
 	UserEventID uuid.UUID `json:"userEventId"`
@@ -53,7 +53,7 @@ func newFetcherHandler(cfg RuntimeConfig) func(context.Context, event.Event) err
 		}
 
 		// unmarshal data
-		var f FetcherRequest
+		var f Request
 		if err := json.Unmarshal(msg.Message.Data, &f); err != nil {
 			log.Error().Err(err).Caller().Msg("failed to unmarshal msg data")
 			return fmt.Errorf("event.DataAs: %w", err)
@@ -74,7 +74,7 @@ func newFetcherHandler(cfg RuntimeConfig) func(context.Context, event.Event) err
 		}
 
 		// format reponse data
-		dto := FetcherCreateRecipe{
+		dto := CreateRecipeRequest{
 			UserID:      f.UserID,
 			UserEventID: f.UserEventID,
 			Recipe:      createRecipeDtoFromRecipe(recipe),
@@ -135,14 +135,14 @@ func PrintStruct(t interface{}) {
 
 // tr@ck: import from a dtos package?
 
-// FetcherCreateRecipe godoc
-type FetcherCreateRecipe struct {
+// CreateRecipeRequest is the API payload sent after a successful recipe scrape.
+type CreateRecipeRequest struct {
 	Recipe      CreateRecipe `json:"recipe"`
 	UserID      string       `json:"userId"`
 	UserEventID uuid.UUID    `json:"userEventId"`
 }
 
-// CreateRecipe godoc
+// CreateRecipe is the recipe body submitted to the API after scraping.
 type CreateRecipe struct {
 	Name         string               `json:"name"`
 	Link         string               `json:"link"`
@@ -152,6 +152,7 @@ type CreateRecipe struct {
 	Banner       []RecipeMediaVariant `json:"banner"`
 }
 
+// RecipeMediaVariant holds a single resized variant of a recipe media asset.
 type RecipeMediaVariant struct {
 	MaxWidth int    `firestore:"maxWidth" json:"maxWidth"`
 	URL      string `firestore:"url" json:"url"`
@@ -159,6 +160,7 @@ type RecipeMediaVariant struct {
 	Alias    string `firestore:"alias" json:"alias"`
 }
 
+// Instruction is a single step in a scraped recipe.
 type Instruction struct {
 	ID   int    `firestore:"id" json:"id"`
 	Type string `firestore:"type" json:"type"`
@@ -166,6 +168,7 @@ type Instruction struct {
 	Text string `firestore:"text" json:"text"`
 }
 
+// Ingredient is a single ingredient in a scraped recipe.
 type Ingredient struct {
 	ID       int    `firestore:"id" json:"id"`
 	Type     string `firestore:"type" json:"type"`
@@ -173,6 +176,7 @@ type Ingredient struct {
 	Quantity string `firestore:"quantity" json:"quantity"`
 }
 
+// UserSummary is a compact user reference embedded in recipe payloads.
 type UserSummary struct {
 	ID          string `firestore:"id,omitempty" json:"id"`
 	Username    string `firestore:"username,omitempty" json:"username"`

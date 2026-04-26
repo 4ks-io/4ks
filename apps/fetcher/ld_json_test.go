@@ -34,7 +34,7 @@ func newTestHTTPServer(dat []byte) *httptest.Server {
 func newUnstartedTestServer(dat []byte) *httptest.Server {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/recipe", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/recipe", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.Write(dat)
 	})
