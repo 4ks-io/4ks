@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useFilePicker, FileContent } from 'use-file-picker';
 import { useRecipeContext } from '@/providers/recipe-context';
 import { RecipeMediaViewImage } from '@/components/Recipe/RecipeMedia/RecipeMediaViewImage';
-import Grid from '@mui/material/Unstable_Grid2';
+import Grid from '@mui/material/Grid2';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
@@ -239,7 +239,7 @@ export default function RecipeMedia({ user, recipe, media }: RecipeMediaProps) {
           return (
             <Grid
               key={index}
-              xs
+              size="grow"
               display="flex"
               justifyContent="center"
               alignItems="center"

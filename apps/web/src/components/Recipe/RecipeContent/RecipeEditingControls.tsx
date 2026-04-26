@@ -184,6 +184,15 @@ export default function RecipeEditingControls({
   }
 
   function FabOptions() {
+    const floatingFabStyle = {
+      margin: 0,
+      top: 'auto',
+      right: 20,
+      bottom: 20,
+      left: 'auto',
+      position: 'fixed',
+    } as const;
+
     const discard = (
       <Tooltip title="Discard changes">
         <Fab
@@ -207,43 +216,31 @@ export default function RecipeEditingControls({
 
     const save = (
       <Tooltip title="Save">
-        <Fab
-          disabled={saveDisabled}
-          color="primary"
-          aria-label="save"
-          sx={{
-            margin: 0,
-            top: 'auto',
-            right: 20,
-            bottom: 20,
-            left: 'auto',
-            position: 'fixed',
-          }}
-          onClick={createRecipe}
-        >
-          <SaveIcon />
-        </Fab>
+        <span style={{ display: 'inline-flex', ...floatingFabStyle }}>
+          <Fab
+            disabled={saveDisabled}
+            color="primary"
+            aria-label="save"
+            onClick={createRecipe}
+          >
+            <SaveIcon />
+          </Fab>
+        </span>
       </Tooltip>
     );
 
     const edit = (
       <Tooltip title="Edit">
-        <Fab
-          disabled={saveDisabled}
-          color="primary"
-          aria-label="edit"
-          sx={{
-            margin: 0,
-            top: 'auto',
-            right: 20,
-            bottom: 20,
-            left: 'auto',
-            position: 'fixed',
-          }}
-          onClick={saveRecipeChanges}
-        >
-          <SaveAsIcon />
-        </Fab>
+        <span style={{ display: 'inline-flex', ...floatingFabStyle }}>
+          <Fab
+            disabled={saveDisabled}
+            color="primary"
+            aria-label="edit"
+            onClick={saveRecipeChanges}
+          >
+            <SaveAsIcon />
+          </Fab>
+        </span>
       </Tooltip>
     );
 

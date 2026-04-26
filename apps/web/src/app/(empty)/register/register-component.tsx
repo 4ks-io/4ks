@@ -8,7 +8,7 @@ import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
 import TextField from '@mui/material/TextField';
-import Grid from '@mui/material/Grid';
+import Grid from '@mui/material/Grid2';
 import Box from '@mui/material/Box';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import Typography from '@mui/material/Typography';
@@ -327,7 +327,7 @@ export default function RegisterComponent({ user }: RegisterComponentProps) {
           /> */}
           <Box sx={{ mt: 3 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   autoComplete="display-name"
                   name="displayName"
@@ -342,7 +342,7 @@ export default function RegisterComponent({ user }: RegisterComponentProps) {
                   helperText={input.displayName.ErrMsg}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   required
                   fullWidth
@@ -356,7 +356,7 @@ export default function RegisterComponent({ user }: RegisterComponentProps) {
                   helperText={input.email.ErrMsg}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   required
                   fullWidth

@@ -6,7 +6,7 @@ import { RecipeMediaSize } from '@/libs/media';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Skeleton from '@mui/material/Skeleton';
-import Grid from '@mui/material/Unstable_Grid2';
+import Grid from '@mui/material/Grid2';
 
 interface RecipeMediaViewImageProps {
   media: models_RecipeMedia;
@@ -41,7 +41,7 @@ export function RecipeMediaViewImage({ media }: RecipeMediaViewImageProps) {
   // }
 
   return (
-    <Grid xs={12} md={6} lg={4} key={media.id}>
+    <Grid size={{ xs: 12, md: 6, lg: 4 }} key={media.id}>
       <Stack direction="row" justifyContent="center" alignItems="center">
         {imageSrc ? (
           <Box
