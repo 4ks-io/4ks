@@ -55,9 +55,9 @@ func (s recipeService) CreateRecipeMedia(ctx context.Context, mp *utils.MediaPro
 		ID:           newRecipeMediaDoc.ID,
 		Variants:     a,
 		ContentType:  mp.ContentType,
-		RecipeId:     recipe.ID,
-		RootRecipeId: recipe.Root,
-		OwnerId:      userID,
+		RecipeID:     recipe.ID,
+		RootRecipeID: recipe.Root,
+		OwnerID:      userID,
 		Status:       models.MediaStatusRequested,
 		BestUse:      models.MediaBestUseGeneral,
 		CreatedDate:  timestamp,
@@ -72,7 +72,7 @@ func (s recipeService) CreateRecipeMedia(ctx context.Context, mp *utils.MediaPro
 	return recipeMedia, nil
 }
 
-func (s recipeService) CreateRecipeMediaSignedURL(ctx context.Context, mp *utils.MediaProps, wg *sync.WaitGroup) (string, error) {
+func (s recipeService) CreateRecipeMediaSignedURL(_ context.Context, mp *utils.MediaProps, wg *sync.WaitGroup) (string, error) {
 	defer wg.Done()
 
 	// https://pkg.go.dev/cloud.google.com/go/storage#SignedURLOptions

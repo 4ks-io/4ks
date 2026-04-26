@@ -49,7 +49,7 @@ func (s recipeService) CreateRecipe(ctx context.Context, recipe *dtos.CreateReci
 		ID:           newRevisionDoc.ID,
 		Name:         recipe.Name,
 		Link:         recipe.Link,
-		RecipeId:     newRecipeDoc.ID,
+		RecipeID:     newRecipeDoc.ID,
 		Author:       recipe.Author,
 		Instructions: recipe.Instructions,
 		Ingredients:  recipe.Ingredients,
@@ -146,7 +146,7 @@ func (s recipeService) ForkRecipeByID(ctx context.Context, recipeID string, fork
 	recipe.Contributors = []models.UserSummary{forkAuthor}
 	recipe.CurrentRevision.Author = forkAuthor
 	recipe.CurrentRevision.ID = newRevisionDocRef.ID
-	recipe.CurrentRevision.RecipeId = newRecipeDocRef.ID
+	recipe.CurrentRevision.RecipeID = newRecipeDocRef.ID
 	recipe.Metadata.Forks = 0
 	recipe.Metadata.Stars = 0
 

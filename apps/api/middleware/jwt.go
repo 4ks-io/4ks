@@ -89,7 +89,7 @@ func EnforceJWT(cfg utils.Auth0Config) func(next http.Handler) http.Handler {
 		log.Error().Err(err).Msg("Failed to set up the jwt validator")
 	}
 
-	errorHandler := func(w http.ResponseWriter, r *http.Request, err error) {
+	errorHandler := func(w http.ResponseWriter, _ *http.Request, err error) {
 		log.Error().Err(err).Msg("failed to validate JWT")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)

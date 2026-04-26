@@ -95,7 +95,7 @@ func TestRecipeControllerCreateRecipe(t *testing.T) {
 			},
 			stubStaticService{
 				getRandomFallbackImageFn: func(context.Context) (string, error) { return "fallback.jpg", nil },
-				getRandomFallbackImageURLFn: func(filename string) string {
+				getRandomFallbackImageURLFn: func(_ string) string {
 					return "https://cdn.example/fallback.jpg"
 				},
 			},
@@ -175,19 +175,19 @@ func TestRecipeControllerCreateRecipeMedia(t *testing.T) {
 		controller := NewRecipeController(
 			stubUserService{},
 			stubRecipeService{
-				createRecipeMediaSignedURLFn: func(_ context.Context, mp *utils.MediaProps, wg *sync.WaitGroup) (string, error) {
+				createRecipeMediaSignedURLFn: func(_ context.Context, mp *utils.MediaProps, _ *sync.WaitGroup) (string, error) {
 					signedURLCalled = true
 					if mp.ContentType != "image/png" || mp.Extension != ".png" || mp.Basename == "" {
 						t.Fatalf("unexpected media props for signed URL: %+v", mp)
 					}
 					return "https://signed.example/upload", nil
 				},
-				createRecipeMediaFn: func(_ context.Context, mp *utils.MediaProps, recipeID string, userID string, wg *sync.WaitGroup) (*models.RecipeMedia, error) {
+				createRecipeMediaFn: func(_ context.Context, mp *utils.MediaProps, recipeID string, userID string, _ *sync.WaitGroup) (*models.RecipeMedia, error) {
 					mediaCalled = true
 					if recipeID != "recipe-1" || userID != "user-1" {
 						t.Fatalf("unexpected ids: %q %q", recipeID, userID)
 					}
-					return &models.RecipeMedia{ID: "media-1", RecipeId: recipeID, OwnerId: userID, ContentType: mp.ContentType}, nil
+					return &models.RecipeMedia{ID: "media-1", RecipeID: recipeID, OwnerID: userID, ContentType: mp.ContentType}, nil
 				},
 			},
 			stubSearchService{},
@@ -539,7 +539,7 @@ func TestRecipeControllerReadHandlers(t *testing.T) {
 				},
 				getAdminRecipeMediasFn: func(_ context.Context, recipeID string) ([]*models.RecipeMedia, error) {
 					calledAdmin = true
-					return []*models.RecipeMedia{{ID: "media-1", RecipeId: recipeID}}, nil
+					return []*models.RecipeMedia{{ID: "media-1", RecipeID: recipeID}}, nil
 				},
 			},
 			stubSearchService{},
@@ -687,7 +687,7 @@ func TestBotControllers(t *testing.T) {
 		var updatePayload *dtos.UpdateUserEvent
 		controller := NewRecipeController(
 			stubUserService{
-				updateUserEventByUserIDEventFn: func(_ context.Context, userID string, payload *dtos.UpdateUserEvent) (*models.UserEvent, error) {
+				updateUserEventByUserIDEventFn: func(_ context.Context, _ string, payload *dtos.UpdateUserEvent) (*models.UserEvent, error) {
 					updatePayload = payload
 					return &models.UserEvent{ID: payload.ID, Status: payload.Status, Error: payload.Error}, nil
 				},
@@ -717,7 +717,7 @@ func TestBotControllers(t *testing.T) {
 		updateCalls := 0
 		controller := NewRecipeController(
 			stubUserService{
-				updateUserEventByUserIDEventFn: func(_ context.Context, userID string, payload *dtos.UpdateUserEvent) (*models.UserEvent, error) {
+				updateUserEventByUserIDEventFn: func(_ context.Context, _ string, payload *dtos.UpdateUserEvent) (*models.UserEvent, error) {
 					updateCalls++
 					if updateCalls == 1 && payload.Status == models.UserEventReady {
 						return nil, errors.New("write failed")

@@ -21,7 +21,8 @@ type searchService struct {
 	client *typesense.Client
 }
 
-type SearchServiceConfig struct {
+// ServiceConfig holds connection parameters for the Typesense search backend.
+type ServiceConfig struct {
 	URL string
 	Key string
 }

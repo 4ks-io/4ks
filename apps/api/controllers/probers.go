@@ -22,6 +22,7 @@ type firestoreProber struct {
 	client *firestore.Client
 }
 
+// NewFirestoreProber returns a Prober that checks Firestore connectivity.
 func NewFirestoreProber(client *firestore.Client) Prober {
 	return &firestoreProber{client: client}
 }
@@ -42,6 +43,7 @@ type typesenseProber struct {
 	client *typesense.Client
 }
 
+// NewTypesenseProber returns a Prober that checks Typesense connectivity.
 func NewTypesenseProber(client *typesense.Client) Prober {
 	return &typesenseProber{client: client}
 }
@@ -65,6 +67,7 @@ type pubsubProber struct {
 	topicID string
 }
 
+// NewPubSubProber returns a Prober that checks PubSub connectivity for the given topic.
 func NewPubSubProber(client *pubsub.Client, topicID string) Prober {
 	return &pubsubProber{client: client, topicID: topicID}
 }
@@ -88,6 +91,7 @@ type storageProber struct {
 	bucket string
 }
 
+// NewStorageProber returns a Prober that checks Cloud Storage connectivity for the given bucket.
 func NewStorageProber(client *storage.Client, bucket string) Prober {
 	return &storageProber{client: client, bucket: bucket}
 }

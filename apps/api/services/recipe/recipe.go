@@ -78,6 +78,7 @@ type recipeService struct {
 	sysFlags                  *utils.SystemFlags
 }
 
+// RecipeServiceConfig holds bucket names and GCS credentials for the recipe service.
 type RecipeServiceConfig struct {
 	DistributionBucket string
 	UploadableBucket   string

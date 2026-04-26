@@ -99,7 +99,7 @@ func EnforceContributor(sub string, obj []models.UserSummary) (bool, error) {
 		return false, fmt.Errorf("failed to load policy: %w", err)
 	}
 
-	data := getIds(obj)
+	data := getIDs(obj)
 
 	ok, err := en.Enforce(c3, sub, data)
 	if err != nil {
@@ -110,8 +110,8 @@ func EnforceContributor(sub string, obj []models.UserSummary) (bool, error) {
 	return ok, nil
 }
 
-// getIds converts array of UserSummary models into string array of ids
-func getIds(data []models.UserSummary) []interface{} {
+// getIDs converts array of UserSummary models into string array of ids
+func getIDs(data []models.UserSummary) []interface{} {
 	// var list []string
 	list := []string{}
 	for _, user := range data {

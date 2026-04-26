@@ -91,7 +91,7 @@ func TestGetAPIVersion(t *testing.T) {
 	})
 }
 
-func TestConfigureLogging(t *testing.T) {
+func TestConfigureLogging(_ *testing.T) {
 	configureLogging()
 }
 

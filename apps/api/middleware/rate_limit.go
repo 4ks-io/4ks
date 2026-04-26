@@ -34,7 +34,8 @@ type limiterEntry struct {
 	lastSeen time.Time
 }
 
-type limiterStore struct {
+// LimiterStore is a process-local in-memory store for per-key rate limiters.
+type LimiterStore struct {
 	mu      sync.Mutex
 	entries map[string]*limiterEntry
 }
@@ -44,14 +45,14 @@ type limiterStore struct {
 // This store is process-local. In Cloud Run, each instance keeps its own
 // buckets, so limits are enforced per live instance rather than globally across
 // all instances. When the service scales down to zero, all buckets disappear.
-func NewLimiterStore() *limiterStore {
-	return &limiterStore{
+func NewLimiterStore() *LimiterStore {
+	return &LimiterStore{
 		entries: make(map[string]*limiterEntry),
 	}
 }
 
 // get returns the limiter for a specific policy rule and key, creating it on first use.
-func (s *limiterStore) get(key string, rule RateLimitRule) *rate.Limiter {
+func (s *LimiterStore) get(key string, rule RateLimitRule) *rate.Limiter {
 	now := time.Now()
 
 	s.mu.Lock()
@@ -79,7 +80,7 @@ func (s *limiterStore) get(key string, rule RateLimitRule) *rate.Limiter {
 
 // NewRateLimitMiddleware creates a gin middleware for a route policy that can
 // enforce multiple budgets, for example QPS + QPM + QPH, using the same key.
-func NewRateLimitMiddleware(store *limiterStore, policy RateLimitPolicy) gin.HandlerFunc {
+func NewRateLimitMiddleware(store *LimiterStore, policy RateLimitPolicy) gin.HandlerFunc {
 	if store == nil {
 		panic("rate limiter store is required")
 	}

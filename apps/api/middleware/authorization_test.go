@@ -105,7 +105,7 @@ func TestErrorAndLoggingMiddleware(t *testing.T) {
 
 	gin.SetMode(gin.TestMode)
 
-	t.Run("error handler skips readiness logs", func(t *testing.T) {
+	t.Run("error handler skips readiness logs", func(_ *testing.T) {
 		rec := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(rec)
 		ctx.Request = httptest.NewRequest(http.MethodGet, "/api/ready", nil)
