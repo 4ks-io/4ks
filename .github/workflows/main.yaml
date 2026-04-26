@@ -25,6 +25,7 @@ jobs:
   test:
     name: test (${{ matrix.name }})
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.continue_on_error == true }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
@@ -45,6 +46,10 @@ jobs:
             runtime: go
             working_directory: apps/media-upload
             test_env: DISTRIBUTION_BUCKET=test FIRESTORE_PROJECT_ID=test
+          - name: lint
+            runtime: go
+            working_directory: .
+            continue_on_error: true
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -59,14 +64,17 @@ jobs:
             utils/recipe-search-refresh/go.sum
             utils/recipe-update/go.sum
       - name: Install gotestsum
-        if: matrix.runtime == 'go'
+        if: matrix.runtime == 'go' && matrix.name != 'lint'
         run: go install gotest.tools/gotestsum@latest
       - name: Test ${{ matrix.name }}
-        if: matrix.runtime == 'go'
+        if: matrix.runtime == 'go' && matrix.name != 'lint'
         working-directory: ${{ matrix.working_directory }}
         run: ${{ matrix.test_env }} gotestsum --format github-actions --jsonfile /tmp/go-test-${{ matrix.name }}.json -- ./...
+      - name: Lint
+        if: matrix.name == 'lint'
+        run: make lint
       - name: Go Test Summary
-        if: matrix.runtime == 'go' && always()
+        if: matrix.runtime == 'go' && matrix.name != 'lint' && always()
         run: |
           result="/tmp/go-test-${{ matrix.name }}.json"
           [[ ! -f "$result" ]] && exit 0
