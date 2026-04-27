@@ -28,13 +28,7 @@ func TestCorsMiddleware(t *testing.T) {
 		router.GET("/api/example", func(c *gin.Context) {
 			c.Status(http.StatusOK)
 		})
-		router.GET("/ai/token", func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
 		router.OPTIONS("/api/example", func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-		router.OPTIONS("/ai/token", func(c *gin.Context) {
 			c.Status(http.StatusOK)
 		})
 		return router
@@ -101,33 +95,6 @@ func TestCorsMiddleware(t *testing.T) {
 		values := rec.Header().Values("Vary")
 		if len(values) != 3 {
 			t.Fatalf("expected 3 vary headers, got %v", values)
-		}
-	})
-
-	t.Run("ai skill route allows wildcard cors", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/ai/token", nil)
-		req.Header.Set("Origin", "https://chatgpt.com")
-		rec := httptest.NewRecorder()
-
-		newRouter().ServeHTTP(rec, req)
-
-		if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "*" {
-			t.Fatalf("expected wildcard origin for ai route, got %q", got)
-		}
-	})
-
-	t.Run("ai skill preflight returns wildcard cors", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodOptions, "/ai/token", nil)
-		req.Header.Set("Origin", "https://chatgpt.com")
-		rec := httptest.NewRecorder()
-
-		newRouter().ServeHTTP(rec, req)
-
-		if rec.Code != http.StatusNoContent {
-			t.Fatalf("expected 204, got %d", rec.Code)
-		}
-		if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "*" {
-			t.Fatalf("expected wildcard origin for ai preflight, got %q", got)
 		}
 	})
 }

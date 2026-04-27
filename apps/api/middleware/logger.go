@@ -29,6 +29,10 @@ func StructuredLogger(logger *zerolog.Logger) gin.HandlerFunc {
 		// Process request
 		c.Next()
 
+		if fullPath := c.FullPath(); fullPath != "" {
+			path = fullPath
+		}
+
 		// don't log some system routes
 		if path == "/api/healthcheck" || path == "/api/ready" {
 			return

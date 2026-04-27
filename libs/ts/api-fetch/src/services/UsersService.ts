@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { dtos_CreateUser } from '../models/dtos_CreateUser';
+import type { dtos_KitchenPassResponse } from '../models/dtos_KitchenPassResponse';
 import type { dtos_TestUsernameRequest } from '../models/dtos_TestUsernameRequest';
 import type { dtos_TestUsernameResponse } from '../models/dtos_TestUsernameResponse';
 import type { dtos_UpdateUser } from '../models/dtos_UpdateUser';
@@ -95,6 +96,45 @@ export class UsersService {
             path: {
                 'id': id,
             },
+        });
+    }
+
+    /**
+     * Get AI Kitchen Pass status
+     * Returns whether the authenticated user has an active AI Kitchen Pass plus the current skill URL and copy text when enabled.
+     * @returns dtos_KitchenPassResponse OK
+     * @throws ApiError
+     */
+    public getApiUserKitchenPass(): CancelablePromise<dtos_KitchenPassResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/api/user/kitchen-pass',
+        });
+    }
+
+    /**
+     * Create or rotate AI Kitchen Pass
+     * Creates an AI Kitchen Pass for the authenticated user, or rotates the existing pass and immediately invalidates the previous token.
+     * @returns dtos_KitchenPassResponse OK
+     * @throws ApiError
+     */
+    public postApiUserKitchenPass(): CancelablePromise<dtos_KitchenPassResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/api/user/kitchen-pass',
+        });
+    }
+
+    /**
+     * Revoke AI Kitchen Pass
+     * Revokes the authenticated user's AI Kitchen Pass and immediately disables further bearer-token access for that pass.
+     * @returns dtos_KitchenPassResponse OK
+     * @throws ApiError
+     */
+    public deleteApiUserKitchenPass(): CancelablePromise<dtos_KitchenPassResponse> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/api/user/kitchen-pass',
         });
     }
 

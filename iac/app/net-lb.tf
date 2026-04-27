@@ -66,6 +66,7 @@
 #     host    = local.web_domain
 #     path    = "/api/ready"
 #   }
+
 # }
 
 # resource "google_compute_security_policy" "development" {

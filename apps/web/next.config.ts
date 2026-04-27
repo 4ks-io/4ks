@@ -4,6 +4,15 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['local.4ks.io'],
   productionBrowserSourceMaps: false,
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        source: '/skill',
+        destination: '/skill.md',
+        permanent: false,
+      },
+    ];
+  },
   experimental: {
     optimizePackageImports: ['@mui/icons-material'],
   },

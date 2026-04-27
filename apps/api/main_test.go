@@ -80,10 +80,6 @@ func (stubKitchenPassService) ValidateToken(_ context.Context, token string) (*m
 	return nil, kitchenpasssvc.ErrKitchenPassNotFound
 }
 
-type testKitchenPassController struct{}
-
-func (testKitchenPassController) GetSkillPage(c *gin.Context) { c.Status(http.StatusOK) }
-
 func newTestControllers() *Controllers {
 	return &Controllers{
 		User:   testUserController{},
@@ -95,7 +91,6 @@ func newTestControllers() *Controllers {
 			Messaging: testProber{},
 			Storage:   testProber{},
 		}),
-		KitchenPass: testKitchenPassController{},
 	}
 }
 

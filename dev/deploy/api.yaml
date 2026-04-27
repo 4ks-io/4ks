@@ -81,13 +81,27 @@ spec:
             - name: IO_4KS_DEVELOPMENT
               value: 'true'
             - name: API_FETCHER_PSK
-              # must match fetcher.API_FETCHER_PSK
-              value: 2c44a496343cfc994d325cd135cba995
+              valueFrom:
+                secretKeyRef:
+                  name: api-local-secrets
+                  key: API_FETCHER_PSK
             - name: FETCHER_HEADER_KEY
               # must match fetcher.API_HEADER_KEY
               value: X-4ks-Auth
             - name: SERVICE_ACCOUNT_EMAIL
               value: local-dev-sa@sbx-4ks.iam.gserviceaccount.com
+            - name: APP_BASE_URL
+              value: https://local.4ks.io
+            - name: PAT_DIGEST_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: api-local-secrets
+                  key: PAT_DIGEST_SECRET
+            - name: PAT_ENCRYPTION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: api-local-secrets
+                  key: PAT_ENCRYPTION_SECRET
           ports:
             - containerPort: 5000
           volumeMounts:

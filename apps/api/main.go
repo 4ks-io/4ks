@@ -39,11 +39,10 @@ import (
 
 // Controllers contains the controllers
 type Controllers struct {
-	User        controllers.UserController
-	Recipe      controllers.RecipeController
-	Search      controllers.SearchController
-	System      controllers.SystemController
-	KitchenPass controllers.KitchenPassController
+	User   controllers.UserController
+	Recipe controllers.RecipeController
+	Search controllers.SearchController
+	System controllers.SystemController
 }
 
 // getAPIVersion returns the api version stored in the VERSION file
@@ -144,8 +143,6 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers, kitch
 
 	// system
 	r.GET("/api/ready", c.System.CheckReadiness)
-	r.GET("/ai/:token", c.KitchenPass.GetSkillPage)
-	r.OPTIONS("/ai/:token", c.KitchenPass.GetSkillPage)
 	// /api/healthcheck is development-only; block this path at the GCP load balancer in production.
 	if sysFlags.Development {
 		r.GET("/api/healthcheck", c.System.Healthcheck)
@@ -365,10 +362,9 @@ func main() {
 				Storage:   controllers.NewStorageProber(store, cfg.Recipe.DistributionBucket),
 			},
 		),
-		Recipe:      controllers.NewRecipeController(user, recipe, search, static, fetcher),
-		User:        controllers.NewUserController(user, kitchenPass),
-		Search:      controllers.NewSearchController(search),
-		KitchenPass: controllers.NewKitchenPassController(kitchenPass),
+		Recipe: controllers.NewRecipeController(user, recipe, search, static, fetcher),
+		User:   controllers.NewUserController(user, kitchenPass),
+		Search: controllers.NewSearchController(search),
 	}
 
 	// gin and middleware

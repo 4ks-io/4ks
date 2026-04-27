@@ -245,7 +245,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Create a new Recipe",
+                "description": "Create a new Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -390,6 +390,79 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/recipes/revisions/{revisionID}/fork": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Fork a specific historical recipe revision. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Recipes"
+                ],
+                "summary": "Fork Recipe Revision",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Revision ID",
+                        "name": "revisionID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Recipe"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/recipes/search": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Search the authenticated user's recipes by name and ingredients. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Recipes"
+                ],
+                "summary": "Search the authenticated user's recipes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SearchRecipesResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/recipes/{recipeID}": {
             "get": {
                 "security": [
@@ -464,7 +537,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Update Recipe",
+                "description": "Update Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -510,7 +583,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Fork Recipe",
+                "description": "Fork Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -535,6 +608,46 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.Recipe"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/recipes/{recipeID}/forks": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get direct child forks for a Recipe. This route is part of the AI Kitchen Pass workflow surface.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Recipes"
+                ],
+                "summary": "Get direct forks for a Recipe",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Recipe ID",
+                        "name": "recipeID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Recipe"
+                            }
                         }
                     }
                 }
@@ -628,7 +741,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get all revisions for a Recipe",
+                "description": "Get all revisions for a Recipe. This route is part of the AI Kitchen Pass workflow surface.",
                 "consumes": [
                     "application/json"
                 ],
@@ -865,6 +978,77 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/user/kitchen-pass": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns whether the authenticated user has an active AI Kitchen Pass plus the current skill URL and copy text when enabled.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get AI Kitchen Pass status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.KitchenPassResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates an AI Kitchen Pass for the authenticated user, or rotates the existing pass and immediately invalidates the previous token.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Create or rotate AI Kitchen Pass",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.KitchenPassResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Revokes the authenticated user's AI Kitchen Pass and immediately disables further bearer-token access for that pass.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Revoke AI Kitchen Pass",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.KitchenPassResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/users/": {
             "get": {
                 "security": [
@@ -1048,6 +1232,29 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.CreateSearchRecipe": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "ingredients": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.CreateUser": {
             "type": "object",
             "required": [
@@ -1125,6 +1332,40 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.Recipe"
+                    }
+                }
+            }
+        },
+        "dtos.KitchenPassResponse": {
+            "type": "object",
+            "properties": {
+                "copyText": {
+                    "type": "string"
+                },
+                "createdDate": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "lastUsedAction": {
+                    "type": "string"
+                },
+                "lastUsedDate": {
+                    "type": "string"
+                },
+                "skillUrl": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.SearchRecipesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.CreateSearchRecipe"
                     }
                 }
             }
@@ -1579,7 +1820,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "4ks API",
-	Description:      "This is the 4ks api",
+	Description:      "4ks recipe API.\n\nAuthentication uses `Authorization: Bearer <token>`.\nMost authenticated routes expect an Auth0 JWT.\nApproved recipe routes documented as AI Kitchen Pass compatible also accept a Kitchen Pass bearer token.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

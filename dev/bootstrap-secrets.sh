@@ -37,6 +37,29 @@ if [[ -z "${AUTH0_SECRET_VALUE}" || "${AUTH0_SECRET_VALUE}" == "replace-me" ]]; 
   echo "warning: using placeholder AUTH0_SECRET for local web bootstrap" >&2
 fi
 
+generate_hex_secret() {
+  local bytes="$1"
+  openssl rand -hex "${bytes}"
+}
+
+API_FETCHER_PSK_VALUE="${API_FETCHER_PSK:-}"
+if [[ -z "${API_FETCHER_PSK_VALUE}" || "${API_FETCHER_PSK_VALUE}" == "replace-me" ]]; then
+  API_FETCHER_PSK_VALUE="$(generate_hex_secret 16)"
+  echo "warning: generated ephemeral API_FETCHER_PSK for local bootstrap" >&2
+fi
+
+PAT_DIGEST_SECRET_VALUE="${PAT_DIGEST_SECRET:-}"
+if [[ -z "${PAT_DIGEST_SECRET_VALUE}" || "${PAT_DIGEST_SECRET_VALUE}" == "replace-me" ]]; then
+  PAT_DIGEST_SECRET_VALUE="$(generate_hex_secret 16)"
+  echo "warning: generated ephemeral PAT_DIGEST_SECRET for local bootstrap" >&2
+fi
+
+PAT_ENCRYPTION_SECRET_VALUE="${PAT_ENCRYPTION_SECRET:-}"
+if [[ -z "${PAT_ENCRYPTION_SECRET_VALUE}" || "${PAT_ENCRYPTION_SECRET_VALUE}" == "replace-me" ]]; then
+  PAT_ENCRYPTION_SECRET_VALUE="$(generate_hex_secret 32)"
+  echo "warning: generated ephemeral PAT_ENCRYPTION_SECRET for local bootstrap" >&2
+fi
+
 GOOGLE_CREDS_FILE="${ROOT_DIR}/${GOOGLE_APPLICATION_CREDENTIALS}"
 if [[ ! -f "${GOOGLE_CREDS_FILE}" ]]; then
   echo "missing ${GOOGLE_CREDS_FILE}; add the local Google service account JSON before starting Tilt" >&2
@@ -51,6 +74,13 @@ kubectl create secret generic web-local-secrets \
 
 kubectl create secret generic api-google-app-creds \
   --from-file=google-app-creds.json="${GOOGLE_CREDS_FILE}" \
+  --dry-run=client \
+  -o yaml | kubectl apply -f -
+
+kubectl create secret generic api-local-secrets \
+  --from-literal=API_FETCHER_PSK="${API_FETCHER_PSK_VALUE}" \
+  --from-literal=PAT_DIGEST_SECRET="${PAT_DIGEST_SECRET_VALUE}" \
+  --from-literal=PAT_ENCRYPTION_SECRET="${PAT_ENCRYPTION_SECRET_VALUE}" \
   --dry-run=client \
   -o yaml | kubectl apply -f -
 

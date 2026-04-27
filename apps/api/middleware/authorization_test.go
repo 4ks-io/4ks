@@ -138,6 +138,32 @@ func TestErrorAndLoggingMiddleware(t *testing.T) {
 			t.Fatalf("unexpected log payload: %+v", payload)
 		}
 	})
+
+	t.Run("structured logger uses route pattern for dynamic paths", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := zerolog.New(&buf)
+		router := gin.New()
+		router.Use(StructuredLogger(&logger))
+		router.GET("/api/recipes/:id", func(c *gin.Context) {
+			c.String(http.StatusOK, "ok")
+		})
+
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/recipes/recipe-123?q=1", nil)
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+
+		var payload map[string]any
+		if err := json.Unmarshal(buf.Bytes(), &payload); err != nil {
+			t.Fatalf("unmarshal log: %v", err)
+		}
+		if payload["path"] != "/api/recipes/:id?q=1" {
+			t.Fatalf("unexpected log payload: %+v", payload)
+		}
+	})
 }
 
 func TestCustomClaimsValidate(t *testing.T) {

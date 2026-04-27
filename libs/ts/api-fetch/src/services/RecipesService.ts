@@ -8,6 +8,7 @@ import type { dtos_FetchRecipeRequest } from '../models/dtos_FetchRecipeRequest'
 import type { dtos_GetRecipeMediaResponse } from '../models/dtos_GetRecipeMediaResponse';
 import type { dtos_GetRecipeResponse } from '../models/dtos_GetRecipeResponse';
 import type { dtos_GetRecipesByUsernameResponse } from '../models/dtos_GetRecipesByUsernameResponse';
+import type { dtos_SearchRecipesResponse } from '../models/dtos_SearchRecipesResponse';
 import type { dtos_UpdateRecipe } from '../models/dtos_UpdateRecipe';
 import type { models_CreateRecipeMedia } from '../models/models_CreateRecipeMedia';
 import type { models_Recipe } from '../models/models_Recipe';
@@ -35,7 +36,7 @@ export class RecipesService {
 
     /**
      * Create a new Recipe
-     * Create a new Recipe
+     * Create a new Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
      * @param recipe Recipe Data
      * @returns models_Recipe OK
      * @throws ApiError
@@ -106,6 +107,44 @@ export class RecipesService {
     }
 
     /**
+     * Fork Recipe Revision
+     * Fork a specific historical recipe revision. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
+     * @param revisionId Revision ID
+     * @returns models_Recipe OK
+     * @throws ApiError
+     */
+    public postApiRecipesRevisionsFork(
+        revisionId: string,
+    ): CancelablePromise<models_Recipe> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/api/recipes/revisions/{revisionID}/fork',
+            path: {
+                'revisionID': revisionId,
+            },
+        });
+    }
+
+    /**
+     * Search the authenticated user's recipes
+     * Search the authenticated user's recipes by name and ingredients. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
+     * @param q Search query
+     * @returns dtos_SearchRecipesResponse OK
+     * @throws ApiError
+     */
+    public getApiRecipesSearch(
+        q?: string,
+    ): CancelablePromise<dtos_SearchRecipesResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/api/recipes/search',
+            query: {
+                'q': q,
+            },
+        });
+    }
+
+    /**
      * Get a Recipe (by ID)
      * Get a Recipe (by ID)
      * @param recipeId Recipe ID
@@ -145,7 +184,7 @@ export class RecipesService {
 
     /**
      * Update Recipe
-     * Update Recipe
+     * Update Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
      * @param recipeId Recipe ID
      * @param payload Recipe Data
      * @returns models_Recipe OK
@@ -167,7 +206,7 @@ export class RecipesService {
 
     /**
      * Fork Recipe
-     * Fork Recipe
+     * Fork Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
      * @param recipeId Recipe ID
      * @returns models_Recipe OK
      * @throws ApiError
@@ -186,7 +225,7 @@ export class RecipesService {
 
     /**
      * Get direct forks for a Recipe
-     * Get direct child forks for a Recipe
+     * Get direct child forks for a Recipe. This route is part of the AI Kitchen Pass workflow surface.
      * @param recipeId Recipe ID
      * @returns models_Recipe OK
      * @throws ApiError
@@ -199,25 +238,6 @@ export class RecipesService {
             url: '/api/recipes/{recipeID}/forks',
             path: {
                 'recipeID': recipeId,
-            },
-        });
-    }
-
-    /**
-     * Fork Recipe Revision
-     * Fork a specific historical recipe revision
-     * @param revisionId Revision ID
-     * @returns models_Recipe OK
-     * @throws ApiError
-     */
-    public postApiRecipesRevisionsFork(
-        revisionId: string,
-    ): CancelablePromise<models_Recipe> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/api/recipes/revisions/{revisionID}/fork',
-            path: {
-                'revisionID': revisionId,
             },
         });
     }
@@ -265,7 +285,7 @@ export class RecipesService {
 
     /**
      * Get all revisions for a Recipe
-     * Get all revisions for a Recipe
+     * Get all revisions for a Recipe. This route is part of the AI Kitchen Pass workflow surface.
      * @param recipeId Recipe ID
      * @returns models_RecipeRevision OK
      * @throws ApiError

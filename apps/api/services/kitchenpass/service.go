@@ -184,10 +184,11 @@ func disabledKitchenPassResponse() *dtos.KitchenPassResponse {
 }
 
 func (s *service) buildResponse(record *models.PersonalAccessToken, token string) *dtos.KitchenPassResponse {
-	skillURL := s.baseURL + "/ai/" + token
+	skillURL := s.baseURL + "/skill.md"
 	copyText := fmt.Sprintf(
-		"Use this as my 4ks recipe memory:\n\n%s\n\nBefore saving or changing a recipe, search my 4ks recipes first to avoid duplicates.",
+		"Use this as my 4ks recipe memory:\n\n%s\n\nSecret Authentication header:\nAuthorization: Bearer %s\n\nBefore saving or changing a recipe, search my 4ks recipes first to avoid duplicates.",
 		skillURL,
+		token,
 	)
 
 	return &dtos.KitchenPassResponse{

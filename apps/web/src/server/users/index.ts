@@ -30,6 +30,18 @@ export const usersRouter = router({
       logTrpc(new Error(), undefined, s, 'users.getAuthenticated');
     }
   }),
+  getKitchenPass: publicProcedure.query(async () => {
+    const api = await getAPIClient();
+    const s = performance.now();
+
+    try {
+      return await api.users.getApiUserKitchenPass();
+    } catch (e) {
+      handleAPIError(e);
+    } finally {
+      logTrpc(new Error(), undefined, s, 'users.getKitchenPass');
+    }
+  }),
   exists: publicProcedure.query(async () => {
     const { token } = await auth0.getAccessToken();
     const s = performance.now();
@@ -96,9 +108,33 @@ export const usersRouter = router({
       } catch (e) {
         handleAPIError(e);
       } finally {
-        logTrpc(new Error(), opts.input, s, 'users.update');
-      }
-    }),
+      logTrpc(new Error(), opts.input, s, 'users.update');
+    }
+  }),
+  createKitchenPass: publicProcedure.mutation(async () => {
+    const api = await getAPIClient();
+    const s = performance.now();
+
+    try {
+      return await api.users.postApiUserKitchenPass();
+    } catch (e) {
+      handleAPIError(e);
+    } finally {
+      logTrpc(new Error(), undefined, s, 'users.createKitchenPass');
+    }
+  }),
+  deleteKitchenPass: publicProcedure.mutation(async () => {
+    const api = await getAPIClient();
+    const s = performance.now();
+
+    try {
+      return await api.users.deleteApiUserKitchenPass();
+    } catch (e) {
+      handleAPIError(e);
+    } finally {
+      logTrpc(new Error(), undefined, s, 'users.deleteKitchenPass');
+    }
+  }),
 });
 
 export type UsersRouter = typeof usersRouter;

@@ -225,6 +225,24 @@ resource "google_cloud_run_v2_service" "api" {
           }
         }
       }
+      env {
+        name = "PAT_DIGEST_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "pat-digest-secret"
+            version = "latest"
+          }
+        }
+      }
+      env {
+        name = "PAT_ENCRYPTION_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "pat-encryption-secret"
+            version = "latest"
+          }
+        }
+      }
     }
   }
 }
@@ -246,6 +264,18 @@ resource "google_secret_manager_secret_iam_member" "api_typesense_api_key" {
 
 resource "google_secret_manager_secret_iam_member" "api_fetcher_psk" {
   secret_id = "api-fetcher-psk"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.api.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "api_pat_digest_secret" {
+  secret_id = "pat-digest-secret"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.api.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "api_pat_encryption_secret" {
+  secret_id = "pat-encryption-secret"
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.api.email}"
 }

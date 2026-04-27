@@ -11,6 +11,8 @@ import Stack from '@mui/material/Stack';
 import UsernameSpecification from '@/components/UsernameSpecifications';
 import DeveloperTools from '@/components/DeveloperTools';
 import AppHeader from '@/components/AppHeader';
+import SettingsKitchenPass from '@/components/SettingsKitchenPass';
+import { serverClient } from '@/trpc/serverClient';
 
 export const metadata: Metadata = {
   title: '4ks Settings',
@@ -21,6 +23,7 @@ export default async function SettingsPage({
 }: PageProps) {
   const { user } = await handleUserNavigation(Page.AUTHENTICATED);
   const session = await auth0.getSession();
+  const kitchenPass = await serverClient.users.getKitchenPass();
 
   if (!session || !session?.user || !user || !user?.username) {
     return <div>Error</div>;
@@ -42,6 +45,9 @@ export default async function SettingsPage({
           <Typography variant="h4" component="h2">
             Settings
           </Typography>
+          <Stack spacing={2} sx={{ paddingTop: 5 }}>
+            <SettingsKitchenPass initialKitchenPass={kitchenPass} />
+          </Stack>
           <Stack spacing={2} style={{ paddingTop: 40 }}>
             <Typography variant="subtitle1" component="h2">
               Email: {user.emailAddress}
@@ -49,7 +55,16 @@ export default async function SettingsPage({
             <Typography variant="subtitle1" component="h2">
               Current Username: {user.username}
             </Typography>
-
+          </Stack>
+          <Stack spacing={2} style={{ paddingTop: 40 }}>
+             <Box>
+              <Typography variant="h5" component="h3">
+                Display Name
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+                Control your public username and how it appears to other users.
+              </Typography>
+            </Box>
             <UpdateUsername username={user.username} />
             <UsernameSpecification />
           </Stack>

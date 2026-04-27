@@ -7,41 +7,6 @@
         "version": "2.0"
     },
     "paths": {
-        "/ai/{token}": {
-            "get": {
-                "description": "Returns a markdown, JSON, or OpenAPI skill document for an active AI Kitchen Pass token depending on the Accept header.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "AI"
-                ],
-                "summary": "Get AI Kitchen Pass skill page",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "AI Kitchen Pass token",
-                        "name": "token",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/api/_admin/init-search-collections": {
             "post": {
                 "security": [

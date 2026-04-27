@@ -89,3 +89,36 @@ resource "google_secret_manager_secret" "typesense_search_api_key" {
   }
 }
 
+resource "google_secret_manager_secret" "pat_digest_secret" {
+  secret_id           = "pat-digest-secret"
+  version_destroy_ttl = local.secret_version_destroy_ttl
+
+  labels = {
+    label = "4ks"
+  }
+
+  replication {
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
+  }
+}
+
+resource "google_secret_manager_secret" "pat_encryption_secret" {
+  secret_id           = "pat-encryption-secret"
+  version_destroy_ttl = local.secret_version_destroy_ttl
+
+  labels = {
+    label = "4ks"
+  }
+
+  replication {
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
+  }
+}

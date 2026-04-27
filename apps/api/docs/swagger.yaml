@@ -427,30 +427,6 @@ info:
   title: 4ks API
   version: "2.0"
 paths:
-  /ai/{token}:
-    get:
-      description: Returns a markdown, JSON, or OpenAPI skill document for an active
-        AI Kitchen Pass token depending on the Accept header.
-      parameters:
-      - description: AI Kitchen Pass token
-        in: path
-        name: token
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-      summary: Get AI Kitchen Pass skill page
-      tags:
-      - AI
   /api/_admin/init-search-collections:
     post:
       consumes:

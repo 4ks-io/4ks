@@ -44,6 +44,13 @@ resource "google_storage_bucket_object" "logo_png" {
   bucket = google_storage_bucket.media_static.name
 }
 
+resource "google_storage_bucket_object" "skill" {
+  name         = "static/skill.md"
+  source       = "${path.module}/../../apps/web/public/skill.md"
+  content_type = "text/markdown; charset=utf-8"
+  bucket       = google_storage_bucket.media_static.name
+}
+
 resource "google_storage_bucket_object" "fallback_image" {
   count = 28
   name   = "static/fallback/f${count.index}.jpg"

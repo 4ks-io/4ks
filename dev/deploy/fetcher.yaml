@@ -41,7 +41,9 @@ spec:
             - name: API_ENDPOINT_URL
               value: http://api.default.svc.cluster.local/api/_fetcher/recipes
             - name: API_FETCHER_PSK
-              # must match api.API_FETCHER_PSK
-              value: 2c44a496343cfc994d325cd135cba995
+              valueFrom:
+                secretKeyRef:
+                  name: api-local-secrets
+                  key: API_FETCHER_PSK
           ports:
             - containerPort: 5000

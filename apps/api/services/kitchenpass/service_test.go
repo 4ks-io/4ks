@@ -4,6 +4,7 @@ import (
 	"4ks/libs/go/models"
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -68,8 +69,14 @@ func TestKitchenPassLifecycle(t *testing.T) {
 	if record.EncryptedToken == *created.SkillURL {
 		t.Fatal("expected encrypted token storage, not plaintext skill URL")
 	}
+	if *created.SkillURL != "https://www.4ks.io/skill.md" {
+		t.Fatalf("unexpected skill URL %q", *created.SkillURL)
+	}
+	if !strings.Contains(*created.CopyText, "https://www.4ks.io/skill.md") {
+		t.Fatalf("expected copy text to include static skill URL, got %q", *created.CopyText)
+	}
 
-	token := (*created.SkillURL)[len("https://www.4ks.io/ai/"):]
+	token := strings.TrimPrefix(strings.Split(strings.Split(*created.CopyText, "Authorization: Bearer ")[1], "\n")[0], "Bearer ")
 	validated, err := service.ValidateToken(context.Background(), token)
 	if err != nil {
 		t.Fatalf("ValidateToken returned error: %v", err)
@@ -84,8 +91,11 @@ func TestKitchenPassLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("rotate returned error: %v", err)
 	}
-	if rotated.SkillURL == nil || *rotated.SkillURL == *created.SkillURL {
-		t.Fatalf("expected new skill URL after rotation, got old=%v new=%v", created.SkillURL, rotated.SkillURL)
+	if rotated.SkillURL == nil || *rotated.SkillURL != "https://www.4ks.io/skill.md" {
+		t.Fatalf("expected static skill URL after rotation, got %v", rotated.SkillURL)
+	}
+	if rotated.CopyText == nil || *rotated.CopyText == *created.CopyText {
+		t.Fatalf("expected rotation to produce new tokenized copy text")
 	}
 
 	if _, err := service.ValidateToken(context.Background(), token); !errors.Is(err, ErrKitchenPassNotFound) {
@@ -105,7 +115,7 @@ func TestKitchenPassLifecycle(t *testing.T) {
 		t.Fatalf("expected disabled response after revoke, got %+v", status)
 	}
 
-	newToken := (*rotated.SkillURL)[len("https://www.4ks.io/ai/"):]
+	newToken := strings.TrimPrefix(strings.Split(strings.Split(*rotated.CopyText, "Authorization: Bearer ")[1], "\n")[0], "Bearer ")
 	if _, err := service.ValidateToken(context.Background(), newToken); !errors.Is(err, ErrKitchenPassNotFound) {
 		t.Fatalf("expected revoked token to be rejected, got %v", err)
 	}

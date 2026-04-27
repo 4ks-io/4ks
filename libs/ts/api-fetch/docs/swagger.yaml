@@ -25,6 +25,21 @@ definitions:
     required:
     - filename
     type: object
+  dtos.CreateSearchRecipe:
+    properties:
+      author:
+        type: string
+      id:
+        type: string
+      imageUrl:
+        type: string
+      ingredients:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+    type: object
   dtos.CreateUser:
     properties:
       displayName:
@@ -76,6 +91,28 @@ definitions:
       data:
         items:
           $ref: '#/definitions/models.Recipe'
+        type: array
+    type: object
+  dtos.KitchenPassResponse:
+    properties:
+      copyText:
+        type: string
+      createdDate:
+        type: string
+      enabled:
+        type: boolean
+      lastUsedAction:
+        type: string
+      lastUsedDate:
+        type: string
+      skillUrl:
+        type: string
+    type: object
+  dtos.SearchRecipesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dtos.CreateSearchRecipe'
         type: array
     type: object
   dtos.TestUsernameRequest:
@@ -381,7 +418,12 @@ definitions:
     type: object
 info:
   contact: {}
-  description: This is the 4ks api
+  description: |-
+    4ks recipe API.
+
+    Authentication uses `Authorization: Bearer <token>`.
+    Most authenticated routes expect an Auth0 JWT.
+    Approved recipe routes documented as AI Kitchen Pass compatible also accept a Kitchen Pass bearer token.
   title: 4ks API
   version: "2.0"
 paths:
@@ -529,7 +571,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new Recipe
+      description: Create a new Recipe. This route accepts either an Auth0 JWT or
+        an AI Kitchen Pass bearer token.
       parameters:
       - description: Recipe Data
         in: body
@@ -595,7 +638,8 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Update Recipe
+      description: Update Recipe. This route accepts either an Auth0 JWT or an AI
+        Kitchen Pass bearer token.
       parameters:
       - description: Recipe ID
         in: path
@@ -624,7 +668,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Fork Recipe
+      description: Fork Recipe. This route accepts either an Auth0 JWT or an AI Kitchen
+        Pass bearer token.
       parameters:
       - description: Recipe ID
         in: path
@@ -641,6 +686,32 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Fork Recipe
+      tags:
+      - Recipes
+  /api/recipes/{recipeID}/forks:
+    get:
+      consumes:
+      - application/json
+      description: Get direct child forks for a Recipe. This route is part of the
+        AI Kitchen Pass workflow surface.
+      parameters:
+      - description: Recipe ID
+        in: path
+        name: recipeID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Recipe'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Get direct forks for a Recipe
       tags:
       - Recipes
   /api/recipes/{recipeID}/media:
@@ -698,7 +769,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all revisions for a Recipe
+      description: Get all revisions for a Recipe. This route is part of the AI Kitchen
+        Pass workflow surface.
       parameters:
       - description: Recipe ID
         in: path
@@ -810,6 +882,53 @@ paths:
       summary: Get a Recipe Revision
       tags:
       - Recipes
+  /api/recipes/revisions/{revisionID}/fork:
+    post:
+      consumes:
+      - application/json
+      description: Fork a specific historical recipe revision. This route accepts
+        either an Auth0 JWT or an AI Kitchen Pass bearer token.
+      parameters:
+      - description: Revision ID
+        in: path
+        name: revisionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Recipe'
+      security:
+      - ApiKeyAuth: []
+      summary: Fork Recipe Revision
+      tags:
+      - Recipes
+  /api/recipes/search:
+    get:
+      consumes:
+      - application/json
+      description: Search the authenticated user's recipes by name and ingredients.
+        This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.SearchRecipesResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Search the authenticated user's recipes
+      tags:
+      - Recipes
   /api/user:
     post:
       consumes:
@@ -913,6 +1032,52 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Delete User
+      tags:
+      - Users
+  /api/user/kitchen-pass:
+    delete:
+      description: Revokes the authenticated user's AI Kitchen Pass and immediately
+        disables further bearer-token access for that pass.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.KitchenPassResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Revoke AI Kitchen Pass
+      tags:
+      - Users
+    get:
+      description: Returns whether the authenticated user has an active AI Kitchen
+        Pass plus the current skill URL and copy text when enabled.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.KitchenPassResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get AI Kitchen Pass status
+      tags:
+      - Users
+    post:
+      description: Creates an AI Kitchen Pass for the authenticated user, or rotates
+        the existing pass and immediately invalidates the previous token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.KitchenPassResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create or rotate AI Kitchen Pass
       tags:
       - Users
   /api/users/:
