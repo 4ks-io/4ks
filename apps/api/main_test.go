@@ -75,10 +75,12 @@ func (stubKitchenPassService) Revoke(context.Context, string) error { return nil
 
 func (stubKitchenPassService) ValidateToken(_ context.Context, token string) (*models.PersonalAccessToken, error) {
 	if token == "4ks_pass_abcdefghijklmnopqrstuvwxyz0123456789" {
-		return &models.PersonalAccessToken{UserID: "user-1"}, nil
+		return &models.PersonalAccessToken{UserID: "user-1", TokenDigest: "digest-1", TokenPreview: "4ks_pass_abc...6789"}, nil
 	}
 	return nil, kitchenpasssvc.ErrKitchenPassNotFound
 }
+
+func (stubKitchenPassService) RecordUsage(context.Context, string, string) error { return nil }
 
 func newTestControllers() *Controllers {
 	return &Controllers{

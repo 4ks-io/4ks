@@ -71,6 +71,8 @@ func StructuredLogger(logger *zerolog.Logger) gin.HandlerFunc {
 			Int("statusCode", param.StatusCode).
 			Int("bodySize", param.BodySize).
 			Str("latency", param.Latency.String()).
+			Str("authType", c.GetString("authType")).
+			Str("patPreview", c.GetString("patPreview")).
 			Msg(param.ErrorMessage)
 	}
 }

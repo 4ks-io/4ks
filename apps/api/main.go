@@ -94,12 +94,21 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers, kitch
 	authenticatedWriteLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
 		Name: "authenticated-write",
 		// Authenticated writes are keyed by user ID first so one NATed IP does not
-		// throttle unrelated users behind the same egress.
+		// throttle unrelated users behind the same egress. PAT traffic uses the
+		// token digest instead so AI traffic does not share JWT buckets.
 		Rules: []middleware.RateLimitRule{
 			middleware.QPSRule(2),
 			middleware.QPMRule(30),
 		},
-		KeyFunc: middleware.RateLimitByUserOrIP,
+		KeyFunc: middleware.RateLimitByAuthOrIP,
+	})
+	authenticatedRecipeSearchLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
+		Name: "authenticated-recipe-search",
+		Rules: []middleware.RateLimitRule{
+			middleware.QPSRule(5),
+			middleware.QPMRule(120),
+		},
+		KeyFunc: middleware.RateLimitByAuthOrIP,
 	})
 	recipeFetchLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
 		Name: "recipe-fetch",
@@ -183,8 +192,8 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers, kitch
 		recipes := api.Group("/recipes")
 		{
 			// Public recipe reads are limited separately from authenticated writes.
-			recipes.GET("/", publicReadLimit, c.Recipe.GetRecipes)
-			recipes.GET("/search", middleware.RequireJWTOrPAT(cfg.Auth0, kitchenPass), publicReadLimit, c.Recipe.SearchRecipes)
+			recipes.GET("", publicReadLimit, c.Recipe.GetRecipes)
+			recipes.GET("/search", middleware.RequireJWTOrPAT(cfg.Auth0, kitchenPass), authenticatedRecipeSearchLimit, c.Recipe.SearchRecipes)
 			recipes.GET("/:id", publicReadLimit, c.Recipe.GetRecipe)
 			recipes.GET("/:id/forks", publicReadLimit, c.Recipe.GetRecipeForks)
 			recipes.GET("/:id/revisions", publicReadLimit, c.Recipe.GetRecipeRevisions)
@@ -194,7 +203,7 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers, kitch
 
 			recipesJWTOrPAT := recipes.Group("")
 			recipesJWTOrPAT.Use(middleware.RequireJWTOrPAT(cfg.Auth0, kitchenPass))
-			recipesJWTOrPAT.POST("/", authenticatedWriteLimit, c.Recipe.CreateRecipe)
+			recipesJWTOrPAT.POST("", authenticatedWriteLimit, c.Recipe.CreateRecipe)
 			recipesJWTOrPAT.PATCH("/:id", authenticatedWriteLimit, c.Recipe.UpdateRecipe)
 			recipesJWTOrPAT.POST("/:id/fork", authenticatedWriteLimit, c.Recipe.ForkRecipe)
 			recipesJWTOrPAT.POST("/revisions/:revisionID/fork", authenticatedWriteLimit, c.Recipe.ForkRecipeRevision)

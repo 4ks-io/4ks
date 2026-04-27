@@ -38,6 +38,7 @@ type stubKitchenPassService struct {
 	createOrRotateFn func(context.Context, string) (*dtos.KitchenPassResponse, error)
 	revokeFn         func(context.Context, string) error
 	validateTokenFn  func(context.Context, string) (*models.PersonalAccessToken, error)
+	recordUsageFn    func(context.Context, string, string) error
 }
 
 func (s stubUserService) GetAllUsers(ctx context.Context) ([]*models.User, error) {
@@ -164,6 +165,13 @@ func (s stubKitchenPassService) ValidateToken(ctx context.Context, token string)
 		return s.validateTokenFn(ctx, token)
 	}
 	return nil, kitchenpasssvc.ErrKitchenPassNotFound
+}
+
+func (s stubKitchenPassService) RecordUsage(ctx context.Context, tokenDigest string, action string) error {
+	if s.recordUsageFn != nil {
+		return s.recordUsageFn(ctx, tokenDigest, action)
+	}
+	return nil
 }
 
 type stubRecipeService struct {

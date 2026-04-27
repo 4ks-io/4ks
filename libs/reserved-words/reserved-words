@@ -3,13 +3,17 @@ about
 add
 admin
 administrator
+ai
 all
+anthropic
 api
 app
 apple
 auth
 bin
 bundles
+chatgpt
+claude
 connect
 contact
 create
@@ -32,6 +36,8 @@ get
 github
 google
 graph
+grok
+grokai
 group
 groups
 guest
@@ -65,6 +71,7 @@ nil
 none
 null
 old
+openai
 option
 options
 order
@@ -86,6 +93,8 @@ scss
 search
 setting
 settings
+skill
+skills
 share
 show
 signin

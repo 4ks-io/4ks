@@ -38,6 +38,20 @@ func (s *memoryStore) FindByDigest(_ context.Context, digest string) (*models.Pe
 	return nil, ErrKitchenPassNotFound
 }
 
+func (s *memoryStore) UpdateUsage(_ context.Context, digest string, usedAt time.Time, action string) error {
+	for userID, record := range s.records {
+		if record.TokenDigest != digest {
+			continue
+		}
+		copy := *record
+		copy.LastUsedDate = &usedAt
+		copy.LastUsedAction = &action
+		s.records[userID] = &copy
+		return nil
+	}
+	return ErrKitchenPassNotFound
+}
+
 func TestKitchenPassLifecycle(t *testing.T) {
 	t.Parallel()
 
@@ -118,6 +132,48 @@ func TestKitchenPassLifecycle(t *testing.T) {
 	newToken := strings.TrimPrefix(strings.Split(strings.Split(*rotated.CopyText, "Authorization: Bearer ")[1], "\n")[0], "Bearer ")
 	if _, err := service.ValidateToken(context.Background(), newToken); !errors.Is(err, ErrKitchenPassNotFound) {
 		t.Fatalf("expected revoked token to be rejected, got %v", err)
+	}
+}
+
+func TestKitchenPassRecordUsage(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC)
+	store := &memoryStore{records: map[string]*models.PersonalAccessToken{}}
+	service := &service{
+		baseURL:          "https://www.4ks.io",
+		digestSecret:     []byte("01234567890123456789012345678901"),
+		encryptionSecret: []byte("abcdefghijklmnopqrstuvwxyz012345"),
+		store:            store,
+		now:              func() time.Time { return now },
+	}
+
+	created, err := service.CreateOrRotate(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("CreateOrRotate returned error: %v", err)
+	}
+
+	token := strings.Split(strings.Split(*created.CopyText, "Authorization: Bearer ")[1], "\n")[0]
+	record, err := service.ValidateToken(context.Background(), token)
+	if err != nil {
+		t.Fatalf("ValidateToken returned error: %v", err)
+	}
+
+	usedAt := now.Add(7 * time.Minute)
+	service.now = func() time.Time { return usedAt }
+	if err := service.RecordUsage(context.Background(), record.TokenDigest, "searched recipes"); err != nil {
+		t.Fatalf("RecordUsage returned error: %v", err)
+	}
+
+	status, err := service.GetStatus(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("GetStatus returned error: %v", err)
+	}
+	if status.LastUsedDate == nil || !status.LastUsedDate.Equal(usedAt) {
+		t.Fatalf("expected lastUsedDate %v, got %+v", usedAt, status.LastUsedDate)
+	}
+	if status.LastUsedAction == nil || *status.LastUsedAction != "searched recipes" {
+		t.Fatalf("expected lastUsedAction to be recorded, got %+v", status.LastUsedAction)
 	}
 }
 

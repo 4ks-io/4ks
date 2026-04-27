@@ -35,7 +35,7 @@ Disallowed actions
 
 Working rules
 
-1. Search before create.
+1. Search before create. Use `GET /api/recipes/search?q=QUERY` with your Kitchen Pass token to search the authenticated user's own recipes before creating a new one.
 2. If a recipe title matches exactly, present the existing recipe before creating a new one.
 3. Fetch the current recipe state before updating it.
 4. Revisions are historical records. Fork a revision into a new recipe instead of trying to mutate the revision itself.

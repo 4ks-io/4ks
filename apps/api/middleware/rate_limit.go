@@ -113,12 +113,15 @@ func NewRateLimitMiddleware(store *LimiterStore, policy RateLimitPolicy) gin.Han
 
 			retryAfter := int(rule.Window.Seconds())
 			c.Header("Retry-After", strconv.Itoa(retryAfter))
+			logKey := redactedRateLimitKey(c, key)
 			log.Warn().
 				Str("policy", policy.Name).
 				Str("rule", rule.Name).
-				Str("key", key).
+				Str("key", logKey).
 				Str("clientIP", c.ClientIP()).
 				Str("path", c.Request.URL.Path).
+				Str("authType", c.GetString("authType")).
+				Str("patPreview", c.GetString("patPreview")).
 				Int("requests", rule.Requests).
 				Dur("window", rule.Window).
 				Msg("rate limit exceeded")
@@ -165,4 +168,28 @@ func RateLimitByUserOrIP(c *gin.Context) string {
 		return userID
 	}
 	return c.ClientIP()
+}
+
+// RateLimitByAuthOrIP separates PAT traffic from JWT traffic while still
+// falling back to client IP when no authenticated identity is available.
+func RateLimitByAuthOrIP(c *gin.Context) string {
+	if c.GetString("authType") == AuthTypePAT {
+		if tokenDigest := c.GetString("patDigest"); tokenDigest != "" {
+			return "pat:" + tokenDigest
+		}
+	}
+	if userID := c.GetString("id"); userID != "" {
+		return "user:" + userID
+	}
+	return c.ClientIP()
+}
+
+func redactedRateLimitKey(c *gin.Context, key string) string {
+	if c.GetString("authType") == AuthTypePAT {
+		if preview := c.GetString("patPreview"); preview != "" {
+			return "pat:" + preview
+		}
+		return "pat"
+	}
+	return key
 }

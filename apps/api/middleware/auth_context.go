@@ -8,10 +8,12 @@ const (
 )
 
 type AuthIdentity struct {
-	AuthID   string
-	AuthType string
-	UserID   string
-	Email    string
+	AuthID     string
+	AuthType   string
+	UserID     string
+	Email      string
+	PATDigest  string
+	PATPreview string
 }
 
 func SetAuthIdentity(ctx *gin.Context, identity AuthIdentity) {
@@ -26,5 +28,11 @@ func SetAuthIdentity(ctx *gin.Context, identity AuthIdentity) {
 	}
 	if identity.Email != "" {
 		ctx.Set("email", identity.Email)
+	}
+	if identity.PATDigest != "" {
+		ctx.Set("patDigest", identity.PATDigest)
+	}
+	if identity.PATPreview != "" {
+		ctx.Set("patPreview", identity.PATPreview)
 	}
 }

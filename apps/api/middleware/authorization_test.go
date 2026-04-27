@@ -98,6 +98,12 @@ func TestRateLimitHelpers(t *testing.T) {
 	if got := RateLimitByUserOrIP(ctx); got != "user-1" {
 		t.Fatalf("expected user ID key, got %q", got)
 	}
+
+	ctx.Set("authType", AuthTypePAT)
+	ctx.Set("patDigest", "digest-1")
+	if got := RateLimitByAuthOrIP(ctx); got != "pat:digest-1" {
+		t.Fatalf("expected pat digest key, got %q", got)
+	}
 }
 
 func TestErrorAndLoggingMiddleware(t *testing.T) {
@@ -162,6 +168,45 @@ func TestErrorAndLoggingMiddleware(t *testing.T) {
 		}
 		if payload["path"] != "/api/recipes/:id?q=1" {
 			t.Fatalf("unexpected log payload: %+v", payload)
+		}
+	})
+
+	t.Run("structured logger redacts kitchen pass secrets", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := zerolog.New(&buf)
+		router := gin.New()
+		router.Use(StructuredLogger(&logger))
+		router.Use(func(c *gin.Context) {
+			SetAuthIdentity(c, AuthIdentity{
+				AuthType:   AuthTypePAT,
+				UserID:     "user-1",
+				PATDigest:  "digest-1",
+				PATPreview: "4ks_pass_abc...6789",
+			})
+			c.Next()
+		})
+		router.GET("/api/example", func(c *gin.Context) {
+			c.String(http.StatusOK, "ok")
+		})
+
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/example", nil)
+		req.Header.Set("Authorization", "Bearer 4ks_pass_abcdefghijklmnopqrstuvwxyz0123456789")
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+		if bytes.Contains(buf.Bytes(), []byte("abcdefghijklmnopqrstuvwxyz0123456789")) {
+			t.Fatalf("expected logger output to omit raw kitchen pass token, got %s", buf.String())
+		}
+
+		var payload map[string]any
+		if err := json.Unmarshal(buf.Bytes(), &payload); err != nil {
+			t.Fatalf("unmarshal log: %v", err)
+		}
+		if payload["authType"] != AuthTypePAT || payload["patPreview"] != "4ks_pass_abc...6789" {
+			t.Fatalf("unexpected PAT log payload: %+v", payload)
 		}
 	})
 }

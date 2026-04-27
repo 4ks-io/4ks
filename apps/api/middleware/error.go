@@ -17,7 +17,11 @@ func ErrorHandler(ctx *gin.Context) {
 
 	if ctx.Errors != nil {
 		for _, err := range ctx.Errors {
-			log.Error().Err(err).Str("path", ctx.Request.URL.Path)
+			log.Error().
+				Err(err).
+				Str("path", ctx.Request.URL.Path).
+				Str("authType", ctx.GetString("authType")).
+				Str("patPreview", ctx.GetString("patPreview"))
 		}
 		// frequently causes json responses to be followed by a null
 		// ctx.JSON(-1, ctx.Errors)

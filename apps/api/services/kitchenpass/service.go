@@ -37,6 +37,7 @@ type Service interface {
 	CreateOrRotate(context.Context, string) (*dtos.KitchenPassResponse, error)
 	Revoke(context.Context, string) error
 	ValidateToken(context.Context, string) (*models.PersonalAccessToken, error)
+	RecordUsage(context.Context, string, string) error
 }
 
 type Config struct {
@@ -49,6 +50,7 @@ type tokenStore interface {
 	GetByUserID(context.Context, string) (*models.PersonalAccessToken, error)
 	Upsert(context.Context, *models.PersonalAccessToken) error
 	FindByDigest(context.Context, string) (*models.PersonalAccessToken, error)
+	UpdateUsage(context.Context, string, time.Time, string) error
 }
 
 type service struct {
@@ -166,6 +168,14 @@ func (s *service) ValidateToken(ctx context.Context, token string) (*models.Pers
 	}
 
 	return record, nil
+}
+
+func (s *service) RecordUsage(ctx context.Context, tokenDigest string, action string) error {
+	if tokenDigest == "" || action == "" {
+		return nil
+	}
+
+	return s.store.UpdateUsage(ctx, tokenDigest, s.now(), action)
 }
 
 func IsKitchenPassToken(token string) bool {
@@ -316,4 +326,23 @@ func (s firestoreStore) FindByDigest(ctx context.Context, digest string) (*model
 	}
 
 	return &record, nil
+}
+
+func (s firestoreStore) UpdateUsage(ctx context.Context, digest string, usedAt time.Time, action string) error {
+	iter := s.collection.Where("tokenDigest", "==", digest).Limit(1).Documents(ctx)
+	defer iter.Stop()
+
+	doc, err := iter.Next()
+	if err != nil {
+		if errors.Is(err, iterator.Done) {
+			return ErrKitchenPassNotFound
+		}
+		return err
+	}
+
+	_, err = doc.Ref.Update(ctx, []firestore.Update{
+		{Path: "lastUsedDate", Value: usedAt},
+		{Path: "lastUsedAction", Value: action},
+	})
+	return err
 }

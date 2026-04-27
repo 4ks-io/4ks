@@ -54,3 +54,55 @@ func TestRateLimitMiddlewareByIP(t *testing.T) {
 		}
 	}
 }
+
+func TestRateLimitMiddlewareSeparatesPATAndJWTBuckets(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	store := NewLimiterStore()
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		switch c.GetHeader("X-Test-Auth") {
+		case "pat":
+			SetAuthIdentity(c, AuthIdentity{
+				AuthType:   AuthTypePAT,
+				UserID:     "user-1",
+				PATDigest:  "digest-1",
+				PATPreview: "4ks_pass_abc...6789",
+			})
+		case "jwt":
+			SetAuthIdentity(c, AuthIdentity{
+				AuthType: AuthTypeJWT,
+				UserID:   "user-1",
+			})
+		}
+		c.Next()
+	})
+	router.Use(NewRateLimitMiddleware(store, RateLimitPolicy{
+		Name: "test-auth",
+		Rules: []RateLimitRule{
+			QPMRule(1),
+		},
+		KeyFunc: RateLimitByAuthOrIP,
+	}))
+	router.GET("/api/example", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	makeRequest := func(auth string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodGet, "/api/example", nil)
+		req.Header.Set("X-Test-Auth", auth)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		return rec
+	}
+
+	if rec := makeRequest("pat"); rec.Code != http.StatusOK {
+		t.Fatalf("expected first PAT request to pass, got %d", rec.Code)
+	}
+	if rec := makeRequest("jwt"); rec.Code != http.StatusOK {
+		t.Fatalf("expected JWT request to use a separate bucket, got %d", rec.Code)
+	}
+	if rec := makeRequest("pat"); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected second PAT request to be limited, got %d", rec.Code)
+	}
+}
