@@ -154,6 +154,10 @@ resource "google_cloud_run_v2_service" "api" {
         value = local.api_url
       }
       env {
+        name  = "APP_BASE_URL"
+        value = local.web_url
+      }
+      env {
         name = "CORS_ALLOWED_ORIGINS"
         value = join(",", compact([
           terraform.workspace == "app-dev-us-east" ? "https://local.4ks.io" : "",
