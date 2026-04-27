@@ -25,6 +25,23 @@ func CorsMiddleware(cfg utils.CORSConfig) gin.HandlerFunc {
 	maxAge := strconv.FormatInt(int64(cfg.MaxAge.Seconds()), 10)
 
 	return func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/ai/") {
+			c.Writer.Header().Add("Vary", "Access-Control-Request-Method")
+			c.Writer.Header().Add("Vary", "Access-Control-Request-Headers")
+			c.Header("Access-Control-Allow-Origin", "*")
+			c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
+			c.Header("Access-Control-Allow-Headers", "Content-Type")
+			c.Header("Access-Control-Max-Age", maxAge)
+
+			if c.Request.Method == http.MethodOptions {
+				c.AbortWithStatus(http.StatusNoContent)
+				return
+			}
+
+			c.Next()
+			return
+		}
+
 		// Responses vary by origin and by preflight request headers, so advertise
 		// that variance explicitly for downstream caches.
 		c.Writer.Header().Add("Vary", "Origin")

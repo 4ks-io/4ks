@@ -277,6 +277,76 @@ func TestRecipeControllerGetRecipesByUsername(t *testing.T) {
 	})
 }
 
+func TestRecipeControllerSearchRecipes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("uses authenticated user username to scope search", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewRecipeController(
+			stubUserService{
+				getUserByIDFn: func(_ context.Context, id string) (*models.User, error) {
+					if id != "user-1" {
+						t.Fatalf("unexpected user id %q", id)
+					}
+					return &models.User{ID: id, Username: "chef-user"}, nil
+				},
+			},
+			stubRecipeService{},
+			stubSearchService{
+				searchRecipesByAuthorFn: func(query string, author string, perPage int) ([]*dtos.CreateSearchRecipe, error) {
+					if query != "soup" || author != "chef-user" || perPage != 20 {
+						t.Fatalf("unexpected search inputs: %q %q %d", query, author, perPage)
+					}
+					return []*dtos.CreateSearchRecipe{{ID: "recipe-1", Name: "Soup", Author: author}}, nil
+				},
+			},
+			stubStaticService{},
+			stubFetcherService{},
+		)
+
+		rec := performRecipeControllerRequest(t, controller.SearchRecipes, http.MethodGet, "/api/recipes/search?q=soup", nil, func(ctx *gin.Context) {
+			ctx.Set("id", "user-1")
+		})
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+
+		var payload dtos.SearchRecipesResponse
+		if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if len(payload.Data) != 1 || payload.Data[0].Name != "Soup" {
+			t.Fatalf("unexpected payload: %+v", payload)
+		}
+	})
+
+	t.Run("missing authenticated user returns forbidden", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewRecipeController(
+			stubUserService{
+				getUserByIDFn: func(context.Context, string) (*models.User, error) {
+					return nil, usersvc.ErrUserNotFound
+				},
+			},
+			stubRecipeService{},
+			stubSearchService{},
+			stubStaticService{},
+			stubFetcherService{},
+		)
+
+		rec := performRecipeControllerRequest(t, controller.SearchRecipes, http.MethodGet, "/api/recipes/search?q=soup", nil, func(ctx *gin.Context) {
+			ctx.Set("id", "user-1")
+		})
+
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d", rec.Code)
+		}
+	})
+}
+
 func TestRecipeControllerStarRecipe(t *testing.T) {
 	t.Parallel()
 

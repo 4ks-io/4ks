@@ -229,6 +229,36 @@ func (c *recipeController) GetRecipes(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, recipes)
 }
 
+// SearchRecipes	godoc
+// @Summary 	  Search the authenticated user's recipes
+// @Description Search the authenticated user's recipes by name and ingredients. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
+// @Tags 		    Recipes
+// @Accept 	   	json
+// @Produce   	json
+// @Param       q query string false "Search query"
+// @Success 		200 {object} dtos.SearchRecipesResponse
+// @Router 			/api/recipes/search [get]
+// @Security 		ApiKeyAuth
+func (c *recipeController) SearchRecipes(ctx *gin.Context) {
+	userID := ctx.GetString("id")
+	user, err := c.userService.GetUserByID(ctx, userID)
+	if err == usersvc.ErrUserNotFound {
+		ctx.AbortWithError(http.StatusForbidden, err)
+		return
+	} else if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	results, err := c.searchService.SearchRecipesByAuthor(ctx.Query("q"), user.Username, 20)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dtos.SearchRecipesResponse{Data: results})
+}
+
 // UpdateRecipe	godoc
 // @Summary 		Update Recipe
 // @Description Update Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.

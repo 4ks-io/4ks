@@ -4,6 +4,8 @@ package search
 import (
 	"4ks/apps/api/dtos"
 	"4ks/libs/go/models"
+	"encoding/json"
+	"fmt"
 
 	"github.com/rs/zerolog/log"
 	"github.com/typesense/typesense-go/typesense"
@@ -14,6 +16,7 @@ import (
 type Service interface {
 	CreateSearchRecipeCollection() error
 	RemoveSearchRecipeDocument(string) error
+	SearchRecipesByAuthor(string, string, int) ([]*dtos.CreateSearchRecipe, error)
 	UpsertSearchRecipeDocument(*models.Recipe) error
 }
 
@@ -75,6 +78,52 @@ func (s searchService) RemoveSearchRecipeDocument(id string) error {
 	}
 
 	return nil
+}
+
+func (s searchService) SearchRecipesByAuthor(query string, author string, perPage int) ([]*dtos.CreateSearchRecipe, error) {
+	if query == "" {
+		query = "*"
+	}
+	if perPage <= 0 {
+		perPage = 20
+	}
+
+	filterBy := fmt.Sprintf("author:=%s", author)
+	params := &api.SearchCollectionParams{
+		Q:        query,
+		QueryBy:  "name,ingredients",
+		FilterBy: &filterBy,
+		PerPage:  &perPage,
+	}
+
+	result, err := s.client.Collection("recipes").Documents().Search(params)
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Hits == nil {
+		return []*dtos.CreateSearchRecipe{}, nil
+	}
+
+	out := make([]*dtos.CreateSearchRecipe, 0, len(*result.Hits))
+	for _, hit := range *result.Hits {
+		if hit.Document == nil {
+			continue
+		}
+
+		body, err := json.Marshal(hit.Document)
+		if err != nil {
+			return nil, err
+		}
+
+		var recipe dtos.CreateSearchRecipe
+		if err := json.Unmarshal(body, &recipe); err != nil {
+			return nil, err
+		}
+		out = append(out, &recipe)
+	}
+
+	return out, nil
 }
 
 // note: schema must overlap with additionalSearchParameters in search-context.tsx

@@ -18,6 +18,7 @@ type RecipeController interface {
 	DeleteRecipe(*gin.Context)
 	GetRecipe(*gin.Context)
 	GetRecipes(*gin.Context)
+	SearchRecipes(*gin.Context)
 	GetRecipesByUsername(*gin.Context)
 	UpdateRecipe(*gin.Context)
 	ForkRecipe(*gin.Context)

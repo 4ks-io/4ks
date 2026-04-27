@@ -16,6 +16,41 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/ai/{token}": {
+            "get": {
+                "description": "Returns a markdown skill document for an active AI Kitchen Pass token.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "Get AI Kitchen Pass skill page",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "AI Kitchen Pass token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/_admin/init-search-collections": {
             "post": {
                 "security": [
@@ -422,6 +457,42 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.Recipe"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/recipes/search": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Search the authenticated user's recipes by name and ingredients. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Recipes"
+                ],
+                "summary": "Search the authenticated user's recipes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.SearchRecipesResponse"
                         }
                     }
                 }
@@ -1196,6 +1267,29 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.CreateSearchRecipe": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "imageUrl": {
+                    "type": "string"
+                },
+                "ingredients": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.CreateUser": {
             "type": "object",
             "required": [
@@ -1297,6 +1391,17 @@ const docTemplate = `{
                 },
                 "skillUrl": {
                     "type": "string"
+                }
+            }
+        },
+        "dtos.SearchRecipesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dtos.CreateSearchRecipe"
+                    }
                 }
             }
         },

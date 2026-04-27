@@ -8,3 +8,8 @@ type CreateSearchRecipe struct {
 	ImageURL    string   `json:"imageUrl"`
 	Ingredients []string `json:"ingredients"`
 }
+
+// SearchRecipesResponse godoc
+type SearchRecipesResponse struct {
+	Data []*CreateSearchRecipe `json:"data"`
+}

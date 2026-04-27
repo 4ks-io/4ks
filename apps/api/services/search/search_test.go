@@ -1,11 +1,13 @@
 package search
 
 import (
+	"4ks/apps/api/dtos"
 	"4ks/libs/go/models"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -132,5 +134,50 @@ func TestCreateSearchRecipeCollection(t *testing.T) {
 	}
 	if !strings.Contains(bodyText, `"name":"recipes"`) || !strings.Contains(bodyText, `"imageUrl"`) {
 		t.Fatalf("unexpected schema body: %s", bodyText)
+	}
+}
+
+func TestSearchRecipesByAuthor(t *testing.T) {
+	t.Parallel()
+
+	var query string
+	service := newTestSearchService(t, func(w http.ResponseWriter, r *http.Request) {
+		query = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"hits": [
+				{
+					"document": {
+						"id": "recipe-1",
+						"author": "chef-user",
+						"name": "Chicken Soup",
+						"imageUrl": "https://cdn.example/soup.jpg",
+						"ingredients": ["chicken", "salt"]
+					}
+				}
+			]
+		}`))
+	})
+
+	results, err := service.SearchRecipesByAuthor("chicken soup", "chef-user", 20)
+	if err != nil {
+		t.Fatalf("SearchRecipesByAuthor returned error: %v", err)
+	}
+	if !strings.Contains(query, "q=chicken+soup") || !strings.Contains(query, "filter_by=author%3A%3Dchef-user") {
+		t.Fatalf("unexpected query string: %s", query)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected one result, got %d", len(results))
+	}
+
+	want := &dtos.CreateSearchRecipe{
+		ID:          "recipe-1",
+		Author:      "chef-user",
+		Name:        "Chicken Soup",
+		ImageURL:    "https://cdn.example/soup.jpg",
+		Ingredients: []string{"chicken", "salt"},
+	}
+	if !reflect.DeepEqual(results[0], want) {
+		t.Fatalf("unexpected result: %+v", results[0])
 	}
 }

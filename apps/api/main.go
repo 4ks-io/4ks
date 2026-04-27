@@ -39,10 +39,11 @@ import (
 
 // Controllers contains the controllers
 type Controllers struct {
-	User   controllers.UserController
-	Recipe controllers.RecipeController
-	Search controllers.SearchController
-	System controllers.SystemController
+	User        controllers.UserController
+	Recipe      controllers.RecipeController
+	Search      controllers.SearchController
+	System      controllers.SystemController
+	KitchenPass controllers.KitchenPassController
 }
 
 // getAPIVersion returns the api version stored in the VERSION file
@@ -143,6 +144,8 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers, kitch
 
 	// system
 	r.GET("/api/ready", c.System.CheckReadiness)
+	r.GET("/ai/:token", c.KitchenPass.GetSkillPage)
+	r.OPTIONS("/ai/:token", c.KitchenPass.GetSkillPage)
 	// /api/healthcheck is development-only; block this path at the GCP load balancer in production.
 	if sysFlags.Development {
 		r.GET("/api/healthcheck", c.System.Healthcheck)
@@ -183,8 +186,9 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers, kitch
 		recipes := api.Group("/recipes")
 		{
 			// Public recipe reads are limited separately from authenticated writes.
-			recipes.GET("/:id", publicReadLimit, c.Recipe.GetRecipe)
 			recipes.GET("/", publicReadLimit, c.Recipe.GetRecipes)
+			recipes.GET("/search", middleware.RequireJWTOrPAT(cfg.Auth0, kitchenPass), publicReadLimit, c.Recipe.SearchRecipes)
+			recipes.GET("/:id", publicReadLimit, c.Recipe.GetRecipe)
 			recipes.GET("/:id/forks", publicReadLimit, c.Recipe.GetRecipeForks)
 			recipes.GET("/:id/revisions", publicReadLimit, c.Recipe.GetRecipeRevisions)
 			recipes.GET("/revisions/:revisionID", publicReadLimit, c.Recipe.GetRecipeRevision)
@@ -361,9 +365,10 @@ func main() {
 				Storage:   controllers.NewStorageProber(store, cfg.Recipe.DistributionBucket),
 			},
 		),
-		Recipe: controllers.NewRecipeController(user, recipe, search, static, fetcher),
-		User:   controllers.NewUserController(user, kitchenPass),
-		Search: controllers.NewSearchController(search),
+		Recipe:      controllers.NewRecipeController(user, recipe, search, static, fetcher),
+		User:        controllers.NewUserController(user, kitchenPass),
+		Search:      controllers.NewSearchController(search),
+		KitchenPass: controllers.NewKitchenPassController(kitchenPass),
 	}
 
 	// gin and middleware

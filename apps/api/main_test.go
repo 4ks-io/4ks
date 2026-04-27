@@ -38,6 +38,7 @@ func (testRecipeController) CreateRecipe(c *gin.Context)           { c.Status(ht
 func (testRecipeController) DeleteRecipe(c *gin.Context)           { c.Status(http.StatusOK) }
 func (testRecipeController) GetRecipe(c *gin.Context)              { c.Status(http.StatusOK) }
 func (testRecipeController) GetRecipes(c *gin.Context)             { c.Status(http.StatusOK) }
+func (testRecipeController) SearchRecipes(c *gin.Context)          { c.Status(http.StatusOK) }
 func (testRecipeController) GetRecipesByUsername(c *gin.Context)   { c.Status(http.StatusOK) }
 func (testRecipeController) UpdateRecipe(c *gin.Context)           { c.Status(http.StatusOK) }
 func (testRecipeController) ForkRecipe(c *gin.Context)             { c.Status(http.StatusOK) }
@@ -79,6 +80,10 @@ func (stubKitchenPassService) ValidateToken(_ context.Context, token string) (*m
 	return nil, kitchenpasssvc.ErrKitchenPassNotFound
 }
 
+type testKitchenPassController struct{}
+
+func (testKitchenPassController) GetSkillPage(c *gin.Context) { c.Status(http.StatusOK) }
+
 func newTestControllers() *Controllers {
 	return &Controllers{
 		User:   testUserController{},
@@ -90,6 +95,7 @@ func newTestControllers() *Controllers {
 			Messaging: testProber{},
 			Storage:   testProber{},
 		}),
+		KitchenPass: testKitchenPassController{},
 	}
 }
 
@@ -197,6 +203,17 @@ func TestAppendRoutes(t *testing.T) {
 
 		if rec.Code != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", rec.Code)
+		}
+	})
+
+	t.Run("kitchen pass can access recipe search route", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/recipes/search?q=soup", nil)
+		req.Header.Set("Authorization", "Bearer 4ks_pass_abcdefghijklmnopqrstuvwxyz0123456789")
+		makeRouter(false).ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
 		}
 	})
 

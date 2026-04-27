@@ -316,6 +316,7 @@ func (s stubRecipeService) CreateMockBanner(filename string, url string) []model
 type stubSearchService struct {
 	createSearchRecipeCollectionFn func() error
 	removeSearchRecipeDocumentFn   func(string) error
+	searchRecipesByAuthorFn        func(string, string, int) ([]*dtos.CreateSearchRecipe, error)
 	upsertSearchRecipeDocumentFn   func(*models.Recipe) error
 }
 
@@ -331,6 +332,13 @@ func (s stubSearchService) RemoveSearchRecipeDocument(id string) error {
 		return s.removeSearchRecipeDocumentFn(id)
 	}
 	return nil
+}
+
+func (s stubSearchService) SearchRecipesByAuthor(query string, author string, perPage int) ([]*dtos.CreateSearchRecipe, error) {
+	if s.searchRecipesByAuthorFn != nil {
+		return s.searchRecipesByAuthorFn(query, author, perPage)
+	}
+	return nil, nil
 }
 
 func (s stubSearchService) UpsertSearchRecipeDocument(recipe *models.Recipe) error {
