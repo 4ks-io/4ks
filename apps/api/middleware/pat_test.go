@@ -125,7 +125,7 @@ func TestRequireJWTOrPAT(t *testing.T) {
 	router := gin.New()
 	cfg := utils.MinimalRuntimeConfig()
 	router.Use(RequireJWTOrPAT(cfg.Auth0, stubKitchenPassService{
-		validateTokenFn: func(_ context.Context, token string) (*models.PersonalAccessToken, error) {
+		validateTokenFn: func(_ context.Context, _ string) (*models.PersonalAccessToken, error) {
 			return nil, kitchenpasssvc.ErrKitchenPassNotFound
 		},
 	}))

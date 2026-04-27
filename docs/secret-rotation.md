@@ -24,6 +24,8 @@ manual step. Disabling starts the 24 h countdown. This keeps active versions at
 | `typesense-api-key`        | prd-4ks   | Cloud Run `api`                    |
 | `typesense-search-api-key` | prd-4ks   | Cloud Run `web`                    |
 | `api-fetcher-psk`          | prd-4ks   | Cloud Run `api`, Cloud Function `fetcher` |
+| `pat-digest-secret`        | prd-4ks   | Cloud Run `api`                    |
+| `pat-encryption-secret`    | prd-4ks   | Cloud Run `api`                    |
 
 ## General rotation procedure
 
@@ -151,6 +153,77 @@ gcloud functions deploy fetcher \
 
 Verify by triggering a recipe fetch and checking Cloud Logging for PSK errors.
 
+### `pat-digest-secret`
+
+HMAC key used to derive stored Kitchen Pass token digests in the API. This is
+not a UUID and should not be a human-readable passphrase. Use a high-entropy
+random secret.
+
+Recommended value shape:
+
+- at least 32 random bytes
+- stored as a printable string such as hex or base64
+- generated independently from `pat-encryption-secret`
+
+Generate a new value:
+
+```sh
+openssl rand -hex 32
+```
+
+Rotation impact:
+
+- rotating this secret immediately invalidates validation for all existing
+  Kitchen Pass tokens
+- users will need to generate a new Kitchen Pass after rotation
+
+Consumer: `api`. After redeployment, verify:
+
+- PAT-authenticated recipe requests fail for pre-rotation tokens
+- generating a new Kitchen Pass succeeds
+- the new Kitchen Pass can authenticate successfully
+
+### `pat-encryption-secret`
+
+Secret material used to derive the AES-GCM key that encrypts the stored Kitchen
+Pass token for later display in `/settings`. This is also not a UUID. Use a
+high-entropy random secret.
+
+Recommended value shape:
+
+- at least 32 random bytes
+- stored as a printable string such as hex or base64
+- generated independently from `pat-digest-secret`
+
+Generate a new value:
+
+```sh
+openssl rand -hex 32
+```
+
+Rotation impact:
+
+- rotating this secret prevents the API from decrypting already-stored Kitchen
+  Pass tokens
+- existing tokens may still authenticate if `pat-digest-secret` is unchanged,
+  but the current token can no longer be shown or copied from `/settings`
+- plan this rotation as a forced Kitchen Pass reissue event unless you are also
+  introducing a data migration path
+
+Consumer: `api`. After redeployment, verify:
+
+- `/api/user/kitchen-pass` still works for users who create a new Kitchen Pass
+- existing Kitchen Pass holders can rotate or revoke and regenerate cleanly
+
+Operational note for both PAT secrets:
+
+- do not reuse the same value for both secrets
+- treat both as long-lived secrets in Secret Manager
+- rotate them only as a deliberate invalidate-and-reissue event
+- for local development, `dev/bootstrap-secrets.sh` can generate ephemeral PAT
+  secrets automatically, but production values should be explicitly managed
+  secrets
+
 ---
 
 ## Verifying active version count
@@ -160,7 +233,7 @@ To confirm you are within the 6-version free tier:
 ```sh
 PROJECT=prd-4ks
 
-for s in auth0-client-secret auth0-session-secret typesense-api-key typesense-search-api-key api-fetcher-psk; do
+for s in auth0-client-secret auth0-session-secret typesense-api-key typesense-search-api-key api-fetcher-psk pat-digest-secret pat-encryption-secret; do
   count=$(gcloud secrets versions list $s --project=$PROJECT \
     --filter="state=ENABLED" --format="value(name)" | wc -l)
   echo "$s: $count active version(s)"

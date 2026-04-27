@@ -1,3 +1,4 @@
+// Package kitchenpasssvc manages Kitchen Pass token lifecycle and validation.
 package kitchenpasssvc
 
 import (
@@ -28,10 +29,13 @@ const (
 )
 
 var (
+	// ErrKitchenPassNotFound indicates no active Kitchen Pass exists for the user or token.
 	ErrKitchenPassNotFound     = errors.New("kitchen pass not found")
+	// ErrInvalidKitchenPassToken indicates the provided bearer token is not a Kitchen Pass token.
 	ErrInvalidKitchenPassToken = errors.New("invalid kitchen pass token")
 )
 
+// Service manages Kitchen Pass status, rotation, validation, and usage tracking.
 type Service interface {
 	GetStatus(context.Context, string) (*dtos.KitchenPassResponse, error)
 	CreateOrRotate(context.Context, string) (*dtos.KitchenPassResponse, error)
@@ -40,6 +44,7 @@ type Service interface {
 	RecordUsage(context.Context, string, string) error
 }
 
+// Config holds the secrets and public base URL required to issue Kitchen Pass responses.
 type Config struct {
 	BaseURL          string
 	DigestSecret     string
@@ -65,6 +70,7 @@ type firestoreStore struct {
 	collection *firestore.CollectionRef
 }
 
+// New builds a Kitchen Pass service backed by the personal access token collection.
 func New(store *firestore.Client, cfg Config) Service {
 	return &service{
 		baseURL:          strings.TrimRight(cfg.BaseURL, "/"),
@@ -178,6 +184,7 @@ func (s *service) RecordUsage(ctx context.Context, tokenDigest string, action st
 	return s.store.UpdateUsage(ctx, tokenDigest, s.now(), action)
 }
 
+// IsKitchenPassToken reports whether a bearer token matches the Kitchen Pass format.
 func IsKitchenPassToken(token string) bool {
 	return strings.HasPrefix(token, tokenPrefix) && len(token) >= minTokenLength
 }

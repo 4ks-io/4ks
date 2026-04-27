@@ -184,7 +184,7 @@ func TestAppendRoutes(t *testing.T) {
 
 	t.Run("authenticated recipe writes are protected by jwt", func(t *testing.T) {
 		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/recipes/", nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/recipes", nil)
 		makeRouter(false).ServeHTTP(rec, req)
 
 		if rec.Code != http.StatusUnauthorized {
@@ -194,7 +194,7 @@ func TestAppendRoutes(t *testing.T) {
 
 	t.Run("kitchen pass can access approved recipe routes", func(t *testing.T) {
 		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/recipes/", nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/recipes", nil)
 		req.Header.Set("Authorization", "Bearer 4ks_pass_abcdefghijklmnopqrstuvwxyz0123456789")
 		makeRouter(false).ServeHTTP(rec, req)
 

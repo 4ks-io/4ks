@@ -18,21 +18,21 @@ func (s *memoryStore) GetByUserID(_ context.Context, userID string) (*models.Per
 	if !ok {
 		return nil, ErrKitchenPassNotFound
 	}
-	copy := *record
-	return &copy, nil
+	recordCopy := *record
+	return &recordCopy, nil
 }
 
 func (s *memoryStore) Upsert(_ context.Context, record *models.PersonalAccessToken) error {
-	copy := *record
-	s.records[record.UserID] = &copy
+	recordCopy := *record
+	s.records[record.UserID] = &recordCopy
 	return nil
 }
 
 func (s *memoryStore) FindByDigest(_ context.Context, digest string) (*models.PersonalAccessToken, error) {
 	for _, record := range s.records {
 		if record.TokenDigest == digest {
-			copy := *record
-			return &copy, nil
+			recordCopy := *record
+			return &recordCopy, nil
 		}
 	}
 	return nil, ErrKitchenPassNotFound
@@ -43,10 +43,10 @@ func (s *memoryStore) UpdateUsage(_ context.Context, digest string, usedAt time.
 		if record.TokenDigest != digest {
 			continue
 		}
-		copy := *record
-		copy.LastUsedDate = &usedAt
-		copy.LastUsedAction = &action
-		s.records[userID] = &copy
+		recordCopy := *record
+		recordCopy.LastUsedDate = &usedAt
+		recordCopy.LastUsedAction = &action
+		s.records[userID] = &recordCopy
 		return nil
 	}
 	return ErrKitchenPassNotFound
