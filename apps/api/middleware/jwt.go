@@ -3,8 +3,10 @@ package middleware
 import (
 	"4ks/apps/api/utils"
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
@@ -39,32 +41,26 @@ func ExtractCustomClaimsFromClaims(claims *validator.ValidatedClaims) CustomClai
 	return *claims.CustomClaims.(*CustomClaims)
 }
 
+func appendJWTClaims(ctx *gin.Context, claims *validator.ValidatedClaims) {
+	customClaims := ExtractCustomClaimsFromClaims(claims)
+	SetAuthIdentity(ctx, AuthIdentity{
+		AuthID:   claims.RegisteredClaims.Subject,
+		AuthType: AuthTypeJWT,
+		UserID:   customClaims.ID,
+		Email:    customClaims.Email,
+	})
+}
+
 // AppendCustomClaims is a middleware that will append custom claims to the context.
 func AppendCustomClaims() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		// log.Debug().Msgf("access_token: %s", ctx.Request.Header["Authorization"])
-
-		// add auth ID to context
 		claims := ExtractClaimsFromRequest(ctx.Request)
-		ctx.Set("authID", claims.RegisteredClaims.Subject)
-
-		// custom clais
-		customClaims := ExtractCustomClaimsFromClaims(&claims)
-		ctx.Set("id", customClaims.ID)
-		ctx.Set("email", customClaims.Email)
-
-		// log.Debug().
-		// 	Str("authID", claims.RegisteredClaims.Subject).
-		// 	Str("id", customClaims.ID).
-		// 	Str("email", customClaims.Email).
-		// 	Msg("custom claims")
-
+		appendJWTClaims(ctx, &claims)
 		ctx.Next()
 	}
 }
 
-// EnforceJWT is a middleware that will check the validity of our JWT.
-func EnforceJWT(cfg utils.Auth0Config) func(next http.Handler) http.Handler {
+func buildJWTValidator(cfg utils.Auth0Config) *validator.Validator {
 	issuerURL, err := url.Parse("https://" + cfg.Domain + "/")
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse the issuer url")
@@ -89,11 +85,68 @@ func EnforceJWT(cfg utils.Auth0Config) func(next http.Handler) http.Handler {
 		log.Error().Err(err).Msg("Failed to set up the jwt validator")
 	}
 
+	return jwtValidator
+}
+
+func writeJWTUnauthorized(w http.ResponseWriter, err error) {
+	log.Error().Err(err).Msg("failed to validate JWT")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_, _ = w.Write([]byte(`{"message":"Failed to validate JWT."}`))
+}
+
+func extractBearerToken(value string) (string, error) {
+	const prefix = "Bearer "
+	if value == "" || !strings.HasPrefix(value, prefix) {
+		return "", http.ErrNoCookie
+	}
+
+	token := strings.TrimSpace(strings.TrimPrefix(value, prefix))
+	if token == "" {
+		return "", http.ErrNoCookie
+	}
+
+	return token, nil
+}
+
+// RequireJWT validates a bearer JWT and stores the resolved identity in Gin context.
+func RequireJWT(cfg utils.Auth0Config) gin.HandlerFunc {
+	jwtValidator := buildJWTValidator(cfg)
+
+	return func(ctx *gin.Context) {
+		token, err := extractBearerToken(ctx.GetHeader("Authorization"))
+		if err != nil {
+			writeJWTUnauthorized(ctx.Writer, err)
+			ctx.Abort()
+			return
+		}
+
+		claimsAny, err := jwtValidator.ValidateToken(ctx.Request.Context(), token)
+		if err != nil {
+			writeJWTUnauthorized(ctx.Writer, err)
+			ctx.Abort()
+			return
+		}
+
+		claims, ok := claimsAny.(*validator.ValidatedClaims)
+		if !ok {
+			writeJWTUnauthorized(ctx.Writer, errors.New("unexpected validated claims type"))
+			ctx.Abort()
+			return
+		}
+
+		ctx.Request = ctx.Request.WithContext(context.WithValue(ctx.Request.Context(), jwtmiddleware.ContextKey{}, claims))
+		appendJWTClaims(ctx, claims)
+		ctx.Next()
+	}
+}
+
+// EnforceJWT is a net/http middleware wrapper retained for compatibility with existing callers.
+func EnforceJWT(cfg utils.Auth0Config) func(next http.Handler) http.Handler {
+	jwtValidator := buildJWTValidator(cfg)
+
 	errorHandler := func(w http.ResponseWriter, _ *http.Request, err error) {
-		log.Error().Err(err).Msg("failed to validate JWT")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"message":"Failed to validate JWT."}`))
+		writeJWTUnauthorized(w, err)
 	}
 
 	middleware := jwtmiddleware.New(

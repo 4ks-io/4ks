@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"4ks/apps/api/dtos"
+	kitchenpasssvc "4ks/apps/api/services/kitchenpass"
 	usersvc "4ks/apps/api/services/user"
 
 	"net/http"
@@ -20,18 +21,23 @@ type UserController interface {
 	GetUsers(*gin.Context)
 	DeleteUser(*gin.Context)
 	UpdateUser(*gin.Context)
+	GetKitchenPass(*gin.Context)
+	CreateKitchenPass(*gin.Context)
+	DeleteKitchenPass(*gin.Context)
 	TestUsername(*gin.Context)
 	RemoveUserEvent(*gin.Context)
 }
 
 type userController struct {
-	usersvc usersvc.Service
+	usersvc        usersvc.Service
+	kitchenPasssvc kitchenpasssvc.Service
 }
 
 // NewUserController creates a new user controller
-func NewUserController(u usersvc.Service) UserController {
+func NewUserController(u usersvc.Service, kitchenPass kitchenpasssvc.Service) UserController {
 	return &userController{
-		usersvc: u,
+		usersvc:        u,
+		kitchenPasssvc: kitchenPass,
 	}
 }
 
@@ -259,6 +265,66 @@ func (c *userController) UpdateUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, u)
+}
+
+// GetKitchenPass godoc
+// @Summary 		Get AI Kitchen Pass status
+// @Description Returns whether the authenticated user has an active AI Kitchen Pass plus the current skill URL and copy text when enabled.
+// @Tags 				Users
+// @Produce 		json
+// @Success 		200 {object} dtos.KitchenPassResponse
+// @Router 			/api/user/kitchen-pass [get]
+// @Security 		ApiKeyAuth
+func (c *userController) GetKitchenPass(ctx *gin.Context) {
+	status, err := c.kitchenPasssvc.GetStatus(ctx, ctx.GetString("id"))
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, status)
+}
+
+// CreateKitchenPass godoc
+// @Summary 		Create or rotate AI Kitchen Pass
+// @Description Creates an AI Kitchen Pass for the authenticated user, or rotates the existing pass and immediately invalidates the previous token.
+// @Tags 				Users
+// @Produce 		json
+// @Success 		200 {object} dtos.KitchenPassResponse
+// @Router 			/api/user/kitchen-pass [post]
+// @Security 		ApiKeyAuth
+func (c *userController) CreateKitchenPass(ctx *gin.Context) {
+	status, err := c.kitchenPasssvc.CreateOrRotate(ctx, ctx.GetString("id"))
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, status)
+}
+
+// DeleteKitchenPass godoc
+// @Summary 		Revoke AI Kitchen Pass
+// @Description Revokes the authenticated user's AI Kitchen Pass and immediately disables further bearer-token access for that pass.
+// @Tags 				Users
+// @Produce 		json
+// @Success 		200 {object} dtos.KitchenPassResponse
+// @Router 			/api/user/kitchen-pass [delete]
+// @Security 		ApiKeyAuth
+func (c *userController) DeleteKitchenPass(ctx *gin.Context) {
+	userID := ctx.GetString("id")
+	if err := c.kitchenPasssvc.Revoke(ctx, userID); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	status, err := c.kitchenPasssvc.GetStatus(ctx, userID)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, status)
 }
 
 // TestUsername	godoc

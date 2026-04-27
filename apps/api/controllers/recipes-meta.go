@@ -13,7 +13,7 @@ import (
 
 // ForkRecipe 	godoc
 // @Summary 		Fork Recipe
-// @Description Fork Recipe
+// @Description Fork Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
 // @Tags 				Recipes
 // @Accept 			json
 // @Produce 		json

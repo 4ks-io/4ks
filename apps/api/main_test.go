@@ -2,7 +2,10 @@ package main
 
 import (
 	controllers "4ks/apps/api/controllers"
+	"4ks/apps/api/dtos"
+	kitchenpasssvc "4ks/apps/api/services/kitchenpass"
 	"4ks/apps/api/utils"
+	"4ks/libs/go/models"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -21,6 +24,9 @@ func (testUserController) GetUser(c *gin.Context)               { c.Status(http.
 func (testUserController) GetUsers(c *gin.Context)              { c.Status(http.StatusOK) }
 func (testUserController) DeleteUser(c *gin.Context)            { c.Status(http.StatusOK) }
 func (testUserController) UpdateUser(c *gin.Context)            { c.Status(http.StatusOK) }
+func (testUserController) GetKitchenPass(c *gin.Context)        { c.Status(http.StatusOK) }
+func (testUserController) CreateKitchenPass(c *gin.Context)     { c.Status(http.StatusOK) }
+func (testUserController) DeleteKitchenPass(c *gin.Context)     { c.Status(http.StatusOK) }
 func (testUserController) TestUsername(c *gin.Context)          { c.Status(http.StatusOK) }
 func (testUserController) RemoveUserEvent(c *gin.Context)       { c.Status(http.StatusOK) }
 
@@ -38,12 +44,12 @@ func (testRecipeController) ForkRecipe(c *gin.Context)             { c.Status(ht
 func (testRecipeController) StarRecipe(c *gin.Context)             { c.Status(http.StatusOK) }
 func (testRecipeController) GetRecipeRevisions(c *gin.Context)     { c.Status(http.StatusOK) }
 func (testRecipeController) GetRecipeRevision(c *gin.Context)      { c.Status(http.StatusOK) }
+func (testRecipeController) GetRecipeForks(c *gin.Context)         { c.Status(http.StatusOK) }
 func (testRecipeController) CreateRecipeMedia(c *gin.Context)      { c.Status(http.StatusOK) }
 func (testRecipeController) GetRecipeMedia(c *gin.Context)         { c.Status(http.StatusOK) }
 func (testRecipeController) GetAdminRecipeMedias(c *gin.Context)   { c.Status(http.StatusOK) }
 func (testRecipeController) FetchRecipe(c *gin.Context)            { c.Status(http.StatusOK) }
 func (testRecipeController) ForkRecipeRevision(c *gin.Context)     { c.Status(http.StatusOK) }
-func (testRecipeController) GetRecipeForks(c *gin.Context)         { c.Status(http.StatusOK) }
 
 type testSearchController struct{}
 
@@ -53,6 +59,25 @@ type testProber struct{}
 
 func (testProber) Name() string                { return "ok" }
 func (testProber) Probe(context.Context) error { return nil }
+
+type stubKitchenPassService struct{}
+
+func (stubKitchenPassService) GetStatus(context.Context, string) (*dtos.KitchenPassResponse, error) {
+	return &dtos.KitchenPassResponse{Enabled: false}, nil
+}
+
+func (stubKitchenPassService) CreateOrRotate(context.Context, string) (*dtos.KitchenPassResponse, error) {
+	return &dtos.KitchenPassResponse{Enabled: true}, nil
+}
+
+func (stubKitchenPassService) Revoke(context.Context, string) error { return nil }
+
+func (stubKitchenPassService) ValidateToken(_ context.Context, token string) (*models.PersonalAccessToken, error) {
+	if token == "4ks_pass_abcdefghijklmnopqrstuvwxyz0123456789" {
+		return &models.PersonalAccessToken{UserID: "user-1"}, nil
+	}
+	return nil, kitchenpasssvc.ErrKitchenPassNotFound
+}
 
 func newTestControllers() *Controllers {
 	return &Controllers{
@@ -125,7 +150,7 @@ func TestAppendRoutes(t *testing.T) {
 		router := gin.New()
 		cfg := utils.MinimalRuntimeConfig()
 		cfg.System.Development = development
-		AppendRoutes(cfg, router, newTestControllers())
+		AppendRoutes(cfg, router, newTestControllers(), stubKitchenPassService{})
 		return router
 	}
 
@@ -157,6 +182,28 @@ func TestAppendRoutes(t *testing.T) {
 	t.Run("authenticated recipe writes are protected by jwt", func(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/api/recipes/", nil)
+		makeRouter(false).ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", rec.Code)
+		}
+	})
+
+	t.Run("kitchen pass can access approved recipe routes", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/recipes/", nil)
+		req.Header.Set("Authorization", "Bearer 4ks_pass_abcdefghijklmnopqrstuvwxyz0123456789")
+		makeRouter(false).ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", rec.Code)
+		}
+	})
+
+	t.Run("kitchen pass is rejected on jwt-only routes", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPatch, "/api/user/", nil)
+		req.Header.Set("Authorization", "Bearer 4ks_pass_abcdefghijklmnopqrstuvwxyz0123456789")
 		makeRouter(false).ServeHTTP(rec, req)
 
 		if rec.Code != http.StatusUnauthorized {

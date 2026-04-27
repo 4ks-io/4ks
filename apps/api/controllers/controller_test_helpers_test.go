@@ -3,6 +3,7 @@ package controllers
 import (
 	"4ks/apps/api/dtos"
 	fetcherService "4ks/apps/api/services/fetcher"
+	kitchenpasssvc "4ks/apps/api/services/kitchenpass"
 	recipeService "4ks/apps/api/services/recipe"
 	searchService "4ks/apps/api/services/search"
 	staticService "4ks/apps/api/services/static"
@@ -30,6 +31,13 @@ type stubUserService struct {
 	testValidNameFn                func(string) bool
 	testReservedWordFn             func(string) bool
 	testAvailableNameFn            func(context.Context, string) (bool, error)
+}
+
+type stubKitchenPassService struct {
+	getStatusFn      func(context.Context, string) (*dtos.KitchenPassResponse, error)
+	createOrRotateFn func(context.Context, string) (*dtos.KitchenPassResponse, error)
+	revokeFn         func(context.Context, string) error
+	validateTokenFn  func(context.Context, string) (*models.PersonalAccessToken, error)
 }
 
 func (s stubUserService) GetAllUsers(ctx context.Context) ([]*models.User, error) {
@@ -128,6 +136,34 @@ func (s stubUserService) TestAvailableName(ctx context.Context, name string) (bo
 		return s.testAvailableNameFn(ctx, name)
 	}
 	return false, nil
+}
+
+func (s stubKitchenPassService) GetStatus(ctx context.Context, userID string) (*dtos.KitchenPassResponse, error) {
+	if s.getStatusFn != nil {
+		return s.getStatusFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (s stubKitchenPassService) CreateOrRotate(ctx context.Context, userID string) (*dtos.KitchenPassResponse, error) {
+	if s.createOrRotateFn != nil {
+		return s.createOrRotateFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (s stubKitchenPassService) Revoke(ctx context.Context, userID string) error {
+	if s.revokeFn != nil {
+		return s.revokeFn(ctx, userID)
+	}
+	return nil
+}
+
+func (s stubKitchenPassService) ValidateToken(ctx context.Context, token string) (*models.PersonalAccessToken, error) {
+	if s.validateTokenFn != nil {
+		return s.validateTokenFn(ctx, token)
+	}
+	return nil, kitchenpasssvc.ErrKitchenPassNotFound
 }
 
 type stubRecipeService struct {

@@ -42,7 +42,7 @@ func TestUserControllerCreateUser(t *testing.T) {
 	t.Run("bind failure returns bad request", func(t *testing.T) {
 		t.Parallel()
 
-		controller := NewUserController(stubUserService{})
+		controller := NewUserController(stubUserService{}, stubKitchenPassService{})
 		rec := performUserControllerRequest(t, controller.CreateUser, http.MethodPost, "/api/user", []byte("{"), func(ctx *gin.Context) {
 			ctx.Set("id", "user-1")
 			ctx.Set("email", "user@example.com")
@@ -63,7 +63,7 @@ func TestUserControllerCreateUser(t *testing.T) {
 				}
 				return nil, usersvc.ErrUsernameInUse
 			},
-		})
+		}, stubKitchenPassService{})
 
 		rec := performUserControllerRequest(t, controller.CreateUser, http.MethodPost, "/api/user", []byte(`{"username":"chef-user","displayName":"Chef User"}`), func(ctx *gin.Context) {
 			ctx.Set("id", "user-1")
@@ -87,7 +87,7 @@ func TestUserControllerCreateUser(t *testing.T) {
 					EmailAddress: userEmail,
 				}, nil
 			},
-		})
+		}, stubKitchenPassService{})
 
 		rec := performUserControllerRequest(t, controller.CreateUser, http.MethodPost, "/api/user", []byte(`{"username":"chef-user","displayName":"Chef User"}`), func(ctx *gin.Context) {
 			ctx.Set("id", "user-1")
@@ -118,7 +118,7 @@ func TestUserControllerHeadAuthenticatedUser(t *testing.T) {
 			getUserByIDFn: func(context.Context, string) (*models.User, error) {
 				return nil, usersvc.ErrUserNotFound
 			},
-		})
+		}, stubKitchenPassService{})
 
 		rec := performUserControllerRequest(t, controller.HeadAuthenticatedUser, http.MethodHead, "/api/user", nil, func(ctx *gin.Context) {
 			ctx.Set("id", "user-1")
@@ -136,7 +136,7 @@ func TestUserControllerHeadAuthenticatedUser(t *testing.T) {
 			getUserByIDFn: func(context.Context, string) (*models.User, error) {
 				return nil, errors.New("boom")
 			},
-		})
+		}, stubKitchenPassService{})
 
 		rec := performUserControllerRequest(t, controller.HeadAuthenticatedUser, http.MethodHead, "/api/user", nil, func(ctx *gin.Context) {
 			ctx.Set("id", "user-1")
@@ -154,7 +154,7 @@ func TestUserControllerRemoveUserEvent(t *testing.T) {
 	t.Run("invalid event id returns bad request", func(t *testing.T) {
 		t.Parallel()
 
-		controller := NewUserController(stubUserService{})
+		controller := NewUserController(stubUserService{}, stubKitchenPassService{})
 		rec := performUserControllerRequest(t, controller.RemoveUserEvent, http.MethodDelete, "/api/user/events/bad", nil, func(ctx *gin.Context) {
 			ctx.Params = gin.Params{{Key: "id", Value: "bad-uuid"}}
 			ctx.Set("id", "user-1")
@@ -176,7 +176,7 @@ func TestUserControllerRemoveUserEvent(t *testing.T) {
 				}
 				return usersvc.ErrUserEventNotFound
 			},
-		})
+		}, stubKitchenPassService{})
 
 		rec := performUserControllerRequest(t, controller.RemoveUserEvent, http.MethodDelete, "/api/user/events/"+eventID.String(), nil, func(ctx *gin.Context) {
 			ctx.Params = gin.Params{{Key: "id", Value: eventID.String()}}
@@ -195,7 +195,7 @@ func TestUserControllerTestUsername(t *testing.T) {
 	t.Run("empty username is rejected", func(t *testing.T) {
 		t.Parallel()
 
-		controller := NewUserController(stubUserService{})
+		controller := NewUserController(stubUserService{}, stubKitchenPassService{})
 		rec := performUserControllerRequest(t, controller.TestUsername, http.MethodPost, "/api/users/username", []byte(`{"username":""}`), nil)
 
 		if rec.Code != http.StatusBadRequest {
@@ -208,7 +208,7 @@ func TestUserControllerTestUsername(t *testing.T) {
 
 		controller := NewUserController(stubUserService{
 			testNameFn: func(context.Context, string) error { return usersvc.ErrReservedWord },
-		})
+		}, stubKitchenPassService{})
 
 		rec := performUserControllerRequest(t, controller.TestUsername, http.MethodPost, "/api/users/username", []byte(`{"username":"admin"}`), nil)
 
@@ -230,7 +230,7 @@ func TestUserControllerTestUsername(t *testing.T) {
 
 		controller := NewUserController(stubUserService{
 			testNameFn: func(context.Context, string) error { return usersvc.ErrUsernameInUse },
-		})
+		}, stubKitchenPassService{})
 
 		rec := performUserControllerRequest(t, controller.TestUsername, http.MethodPost, "/api/users/username", []byte(`{"username":"chef-user"}`), nil)
 
@@ -252,7 +252,7 @@ func TestUserControllerTestUsername(t *testing.T) {
 
 		controller := NewUserController(stubUserService{
 			testNameFn: func(context.Context, string) error { return nil },
-		})
+		}, stubKitchenPassService{})
 
 		rec := performUserControllerRequest(t, controller.TestUsername, http.MethodPost, "/api/users/username", []byte(`{"username":"chef-user"}`), nil)
 
@@ -266,6 +266,82 @@ func TestUserControllerTestUsername(t *testing.T) {
 		}
 		if !resp.Valid || !resp.Available || resp.Message != "" {
 			t.Fatalf("unexpected response: %+v", resp)
+		}
+	})
+}
+
+func TestUserControllerKitchenPass(t *testing.T) {
+	t.Parallel()
+
+	activeStatus := &dtos.KitchenPassResponse{Enabled: true}
+	disabledStatus := &dtos.KitchenPassResponse{Enabled: false}
+
+	t.Run("get returns current status", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewUserController(stubUserService{}, stubKitchenPassService{
+			getStatusFn: func(_ context.Context, userID string) (*dtos.KitchenPassResponse, error) {
+				if userID != "user-1" {
+					t.Fatalf("unexpected userID %q", userID)
+				}
+				return activeStatus, nil
+			},
+		})
+
+		rec := performUserControllerRequest(t, controller.GetKitchenPass, http.MethodGet, "/api/user/kitchen-pass", nil, func(ctx *gin.Context) {
+			ctx.Set("id", "user-1")
+		})
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("post rotates and returns new status", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewUserController(stubUserService{}, stubKitchenPassService{
+			createOrRotateFn: func(_ context.Context, userID string) (*dtos.KitchenPassResponse, error) {
+				if userID != "user-1" {
+					t.Fatalf("unexpected userID %q", userID)
+				}
+				return activeStatus, nil
+			},
+		})
+
+		rec := performUserControllerRequest(t, controller.CreateKitchenPass, http.MethodPost, "/api/user/kitchen-pass", nil, func(ctx *gin.Context) {
+			ctx.Set("id", "user-1")
+		})
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("delete revokes and returns disabled status", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewUserController(stubUserService{}, stubKitchenPassService{
+			revokeFn: func(_ context.Context, userID string) error {
+				if userID != "user-1" {
+					t.Fatalf("unexpected userID %q", userID)
+				}
+				return nil
+			},
+			getStatusFn: func(_ context.Context, userID string) (*dtos.KitchenPassResponse, error) {
+				if userID != "user-1" {
+					t.Fatalf("unexpected userID %q", userID)
+				}
+				return disabledStatus, nil
+			},
+		})
+
+		rec := performUserControllerRequest(t, controller.DeleteKitchenPass, http.MethodDelete, "/api/user/kitchen-pass", nil, func(ctx *gin.Context) {
+			ctx.Set("id", "user-1")
+		})
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
 		}
 	})
 }

@@ -19,7 +19,7 @@ import (
 // CreateRecipe godoc
 // @Schemes
 // @Summary 		Create a new Recipe
-// @Description Create a new Recipe
+// @Description Create a new Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
 // @Tags 				Recipes
 // @Accept 			json
 // @Produce 		json
@@ -231,7 +231,7 @@ func (c *recipeController) GetRecipes(ctx *gin.Context) {
 
 // UpdateRecipe	godoc
 // @Summary 		Update Recipe
-// @Description Update Recipe
+// @Description Update Recipe. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
 // @Tags 				Recipes
 // @Accept 			json
 // @Produce 		json

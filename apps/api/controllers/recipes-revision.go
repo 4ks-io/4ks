@@ -10,7 +10,7 @@ import (
 
 // GetRecipeRevisions godoc
 // @Summary 		Get all revisions for a Recipe
-// @Description Get all revisions for a Recipe
+// @Description Get all revisions for a Recipe. This route is part of the AI Kitchen Pass workflow surface.
 // @Tags 				Recipes
 // @Accept 			json
 // @Produce 		json

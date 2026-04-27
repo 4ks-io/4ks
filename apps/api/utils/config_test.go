@@ -61,6 +61,7 @@ func TestLoadRuntimeConfig(t *testing.T) {
 	t.Setenv("TRUSTED_PROXY_CIDRS", "10.0.0.0/8,127.0.0.1/32")
 	t.Setenv("AUTH0_DOMAIN", "example.auth0.com")
 	t.Setenv("AUTH0_AUDIENCE", "test-audience")
+	t.Setenv("APP_BASE_URL", "https://www.4ks.io")
 	t.Setenv("TYPESENSE_URL", "http://typesense:8108")
 	t.Setenv("TYPESENSE_API_KEY", "typesense-key")
 	t.Setenv("MEDIA_FALLBACK_URL", "https://media.4ks.io/fallback.jpg")
@@ -76,6 +77,8 @@ func TestLoadRuntimeConfig(t *testing.T) {
 	t.Setenv("PUBSUB_EMULATOR_HOST", "localhost:8085")
 	t.Setenv("FETCHER_TOPIC_ID", "fetcher-custom")
 	t.Setenv("API_FETCHER_PSK", "01234567890123456789012345678901")
+	t.Setenv("PAT_DIGEST_SECRET", "01234567890123456789012345678901")
+	t.Setenv("PAT_ENCRYPTION_SECRET", "abcdefghijklmnopqrstuvwxyz012345")
 	t.Setenv("JAEGER_ENABLED", "true")
 	t.Setenv("EXPORTER_TYPE", "jaeger")
 	t.Setenv("OTEL_EXPORTER_JAEGER_ENDPOINT", "http://jaeger:14268/api/traces")
@@ -92,6 +95,9 @@ func TestLoadRuntimeConfig(t *testing.T) {
 	}
 	if !cfg.Features.SwaggerEnabled || cfg.Routes.SwaggerURLPrefix != "/api" || cfg.Routes.Port != "9000" {
 		t.Fatalf("unexpected route config: %+v %+v", cfg.Features, cfg.Routes)
+	}
+	if cfg.KitchenPass.BaseURL != "https://www.4ks.io" {
+		t.Fatalf("unexpected kitchen pass config: %+v", cfg.KitchenPass)
 	}
 	if cfg.PubSub.FetcherTopic != "fetcher-custom" || !cfg.Tracing.Enabled || cfg.Tracing.ExporterType != "JAEGER" {
 		t.Fatalf("unexpected typed runtime config: %+v %+v", cfg.PubSub, cfg.Tracing)

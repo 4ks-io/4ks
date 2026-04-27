@@ -13,7 +13,7 @@ import (
 
 // GetRecipeForks godoc
 // @Summary 		Get direct forks for a Recipe
-// @Description Get direct child forks for a Recipe
+// @Description Get direct child forks for a Recipe. This route is part of the AI Kitchen Pass workflow surface.
 // @Tags 				Recipes
 // @Accept 			json
 // @Produce 		json
@@ -38,7 +38,7 @@ func (c *recipeController) GetRecipeForks(ctx *gin.Context) {
 
 // ForkRecipeRevision godoc
 // @Summary 		Fork Recipe Revision
-// @Description Fork a specific historical recipe revision
+// @Description Fork a specific historical recipe revision. This route accepts either an Auth0 JWT or an AI Kitchen Pass bearer token.
 // @Tags 				Recipes
 // @Accept 			json
 // @Produce 		json

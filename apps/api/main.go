@@ -15,6 +15,7 @@ import (
 	controllers "4ks/apps/api/controllers"
 	middleware "4ks/apps/api/middleware"
 	fetcherService "4ks/apps/api/services/fetcher"
+	kitchenPassService "4ks/apps/api/services/kitchenpass"
 	recipeService "4ks/apps/api/services/recipe"
 	searchService "4ks/apps/api/services/search"
 	staticService "4ks/apps/api/services/static"
@@ -27,7 +28,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	adapter "github.com/gwatts/gin-adapter"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	swaggerfiles "github.com/swaggo/files"
@@ -71,14 +71,11 @@ func configureLogging() {
 
 // EnforceAuth enforces authentication
 func EnforceAuth(authConfig utils.Auth0Config, r *gin.RouterGroup) {
-	// JWT validation runs first so downstream middleware and handlers can rely on
-	// the authenticated identity stored in Gin context.
-	r.Use(adapter.Wrap(middleware.EnforceJWT(authConfig)))
-	r.Use(middleware.AppendCustomClaims())
+	r.Use(middleware.RequireJWT(authConfig))
 }
 
 // AppendRoutes appends routes to the router
-func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers) {
+func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers, kitchenPass kitchenPassService.Service) {
 	sysFlags := cfg.SystemFlags()
 
 	// One shared store lets related routes reuse buckets consistently while
@@ -194,18 +191,20 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers) {
 			recipes.GET("/:id/media", publicReadLimit, c.Recipe.GetRecipeMedia)
 			recipes.GET("/author/:username", publicReadLimit, c.Recipe.GetRecipesByUsername)
 
-			// authenticated routes below this line
-			EnforceAuth(cfg.Auth0, recipes)
+			recipesJWTOrPAT := recipes.Group("")
+			recipesJWTOrPAT.Use(middleware.RequireJWTOrPAT(cfg.Auth0, kitchenPass))
+			recipesJWTOrPAT.POST("/", authenticatedWriteLimit, c.Recipe.CreateRecipe)
+			recipesJWTOrPAT.PATCH("/:id", authenticatedWriteLimit, c.Recipe.UpdateRecipe)
+			recipesJWTOrPAT.POST("/:id/fork", authenticatedWriteLimit, c.Recipe.ForkRecipe)
+			recipesJWTOrPAT.POST("/revisions/:revisionID/fork", authenticatedWriteLimit, c.Recipe.ForkRecipeRevision)
 
-			recipes.POST("/", authenticatedWriteLimit, c.Recipe.CreateRecipe)
-			recipes.POST("/fetch", recipeFetchLimit, c.Recipe.FetchRecipe)
-			recipes.PATCH("/:id", authenticatedWriteLimit, c.Recipe.UpdateRecipe)
-			recipes.POST("/:id/star", authenticatedWriteLimit, c.Recipe.StarRecipe)
-			recipes.POST("/:id/fork", authenticatedWriteLimit, c.Recipe.ForkRecipe)
-			recipes.POST("/revisions/:revisionID/fork", authenticatedWriteLimit, c.Recipe.ForkRecipeRevision)
+			recipesJWTOnly := recipes.Group("")
+			EnforceAuth(cfg.Auth0, recipesJWTOnly)
+			recipesJWTOnly.POST("/fetch", recipeFetchLimit, c.Recipe.FetchRecipe)
+			recipesJWTOnly.POST("/:id/star", authenticatedWriteLimit, c.Recipe.StarRecipe)
 			// Media initialization is its own abuse target because it creates a signed upload URL.
-			recipes.POST("/:id/media", mediaInitLimit, c.Recipe.CreateRecipeMedia)
-			recipes.DELETE("/:id", authenticatedWriteLimit, c.Recipe.DeleteRecipe)
+			recipesJWTOnly.POST("/:id/media", mediaInitLimit, c.Recipe.CreateRecipeMedia)
+			recipesJWTOnly.DELETE("/:id", authenticatedWriteLimit, c.Recipe.DeleteRecipe)
 		}
 
 		// authenticated routes below this line
@@ -218,6 +217,9 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers) {
 			user.GET("/", c.User.GetAuthenticatedUser)
 			user.POST("/", userCreateLimit, c.User.CreateUser)
 			user.PATCH("/", authenticatedWriteLimit, c.User.UpdateUser)
+			user.GET("/kitchen-pass", c.User.GetKitchenPass)
+			user.POST("/kitchen-pass", authenticatedWriteLimit, c.User.CreateKitchenPass)
+			user.DELETE("/kitchen-pass", c.User.DeleteKitchenPass)
 			user.DELETE("/events/:id", authenticatedWriteLimit, c.User.RemoveUserEvent)
 		}
 
@@ -251,7 +253,11 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers) {
 
 // @title 4ks API
 // @version 2.0
-// @description This is the 4ks api
+// @description 4ks recipe API.
+// @description
+// @description Authentication uses `Authorization: Bearer <token>`.
+// @description Most authenticated routes expect an Auth0 JWT.
+// @description Approved recipe routes documented as AI Kitchen Pass compatible also accept a Kitchen Pass bearer token.
 
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
@@ -328,6 +334,11 @@ func main() {
 	// services
 	static := staticService.New(store, cfg.Static.FallbackURL, cfg.Static.Bucket, cfg.Static.FallbackPrefix)
 	search := searchService.New(ts)
+	kitchenPass := kitchenPassService.New(fire, kitchenPassService.Config{
+		BaseURL:          cfg.KitchenPass.BaseURL,
+		DigestSecret:     cfg.KitchenPass.DigestSecret,
+		EncryptionSecret: cfg.KitchenPass.EncryptionSecret,
+	})
 
 	v := validator.New()
 	user := userService.New(&sysFlags, fire, v, &reservedWords)
@@ -351,7 +362,7 @@ func main() {
 			},
 		),
 		Recipe: controllers.NewRecipeController(user, recipe, search, static, fetcher),
-		User:   controllers.NewUserController(user),
+		User:   controllers.NewUserController(user, kitchenPass),
 		Search: controllers.NewSearchController(search),
 	}
 
@@ -372,7 +383,7 @@ func main() {
 	prom := ginprometheus.NewPrometheus("gin")
 	prom.Use(router)
 
-	AppendRoutes(cfg, router, c)
+	AppendRoutes(cfg, router, c, kitchenPass)
 
 	addr := "0.0.0.0:" + cfg.Routes.Port
 	srv := &http.Server{Addr: addr, Handler: router}

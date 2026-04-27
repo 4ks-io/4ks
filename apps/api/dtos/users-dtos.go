@@ -2,6 +2,7 @@ package dtos
 
 import (
 	"4ks/libs/go/models"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -51,4 +52,14 @@ type UpdateUserEvent struct {
 	Status models.UserEventStatus `json:"status"`
 	Error  models.UserEventError  `json:"error"`
 	Data   interface{}            `json:"data"`
+}
+
+// KitchenPassResponse is the user-facing API representation of the current AI Kitchen Pass state.
+type KitchenPassResponse struct {
+	Enabled        bool       `json:"enabled"`
+	SkillURL       *string    `json:"skillUrl"`
+	CopyText       *string    `json:"copyText"`
+	CreatedDate    *time.Time `json:"createdDate"`
+	LastUsedDate   *time.Time `json:"lastUsedDate"`
+	LastUsedAction *string    `json:"lastUsedAction"`
 }

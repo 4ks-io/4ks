@@ -75,6 +75,13 @@ type Auth0Config struct {
 	Audience string `validate:"required"`
 }
 
+// KitchenPassConfig contains AI Kitchen Pass secrets and URL settings.
+type KitchenPassConfig struct {
+	BaseURL          string `validate:"required,http_url"`
+	DigestSecret     string `validate:"required,min=32"`
+	EncryptionSecret string `validate:"required,min=32"`
+}
+
 // TypesenseConfig contains Typesense connectivity settings.
 type TypesenseConfig struct {
 	URL    string `validate:"required,http_url"`
@@ -125,18 +132,19 @@ type TracingConfig struct {
 
 // RuntimeConfig contains all API runtime configuration loaded at startup.
 type RuntimeConfig struct {
-	Auth0     Auth0Config
-	Features  FeatureFlags
-	Fetcher   FetcherConfig
-	Firestore FirestoreConfig
-	HTTP      HTTPSecurityConfig
-	PubSub    PubSubConfig
-	Recipe    RecipeRuntimeConfig
-	Routes    RouteConfig
-	Static    StaticMediaConfig
-	System    SystemConfig
-	Tracing   TracingConfig
-	Typesense TypesenseConfig
+	Auth0       Auth0Config
+	Features    FeatureFlags
+	Fetcher     FetcherConfig
+	Firestore   FirestoreConfig
+	HTTP        HTTPSecurityConfig
+	KitchenPass KitchenPassConfig
+	PubSub      PubSubConfig
+	Recipe      RecipeRuntimeConfig
+	Routes      RouteConfig
+	Static      StaticMediaConfig
+	System      SystemConfig
+	Tracing     TracingConfig
+	Typesense   TypesenseConfig
 }
 
 type rawHTTPSecurityConfig struct {
@@ -147,6 +155,7 @@ type rawHTTPSecurityConfig struct {
 type rawRuntimeConfig struct {
 	Auth0Audience       string `required:"true" env:"AUTH0_AUDIENCE"`
 	Auth0Domain         string `required:"true" env:"AUTH0_DOMAIN"`
+	AppBaseURL          string `required:"true" env:"APP_BASE_URL"`
 	CORSAllowedOrigins  string `required:"true" env:"CORS_ALLOWED_ORIGINS"`
 	Development         bool   `env:"IO_4KS_DEVELOPMENT"`
 	DistributionBucket  string `required:"true" env:"DISTRIBUTION_BUCKET"`
@@ -159,6 +168,8 @@ type rawRuntimeConfig struct {
 	JaegerEndpoint      string `default:"http://jaeger:14268/api/traces" env:"OTEL_EXPORTER_JAEGER_ENDPOINT"`
 	MediaFallbackURL    string `required:"true" env:"MEDIA_FALLBACK_URL"`
 	MediaImageURL       string `required:"true" env:"MEDIA_IMAGE_URL"`
+	PATDigestSecret     string `required:"true" env:"PAT_DIGEST_SECRET"`
+	PATEncryptionSecret string `required:"true" env:"PAT_ENCRYPTION_SECRET"`
 	Port                string `default:"5000" env:"PORT"`
 	PubSubEmulator      string `env:"PUBSUB_EMULATOR_HOST"`
 	PubSubProjectID     string `required:"true" env:"PUBSUB_PROJECT_ID"`
@@ -219,6 +230,11 @@ func MinimalRuntimeConfig() *RuntimeConfig {
 		Auth0: Auth0Config{
 			Domain:   "example.auth0.com",
 			Audience: "test",
+		},
+		KitchenPass: KitchenPassConfig{
+			BaseURL:          "https://www.4ks.io",
+			DigestSecret:     "01234567890123456789012345678901",
+			EncryptionSecret: "abcdefghijklmnopqrstuvwxyz012345",
 		},
 		Typesense: TypesenseConfig{
 			URL:    "http://typesense:8108",
@@ -298,6 +314,11 @@ func buildRuntimeConfig(raw rawRuntimeConfig) (*RuntimeConfig, error) {
 		Auth0: Auth0Config{
 			Domain:   raw.Auth0Domain,
 			Audience: raw.Auth0Audience,
+		},
+		KitchenPass: KitchenPassConfig{
+			BaseURL:          raw.AppBaseURL,
+			DigestSecret:     raw.PATDigestSecret,
+			EncryptionSecret: raw.PATEncryptionSecret,
 		},
 		Typesense: TypesenseConfig{
 			URL:    raw.TypesenseURL,

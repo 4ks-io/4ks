@@ -48,6 +48,9 @@ func TestAppendCustomClaims(t *testing.T) {
 	if got := ctx.GetString("email"); got != "user@example.com" {
 		t.Fatalf("expected email to be set, got %q", got)
 	}
+	if got := ctx.GetString("authType"); got != AuthTypeJWT {
+		t.Fatalf("expected authType jwt, got %q", got)
+	}
 }
 
 func TestExtractCustomClaimsFromClaims(t *testing.T) {
