@@ -18,9 +18,9 @@ const docTemplate = `{
     "paths": {
         "/ai/{token}": {
             "get": {
-                "description": "Returns a markdown skill document for an active AI Kitchen Pass token.",
+                "description": "Returns a markdown, JSON, or OpenAPI skill document for an active AI Kitchen Pass token depending on the Accept header.",
                 "produces": [
-                    "text/plain"
+                    "application/json"
                 ],
                 "tags": [
                     "AI"

@@ -4,6 +4,7 @@ import (
 	kitchenpasssvc "4ks/apps/api/services/kitchenpass"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,15 +25,14 @@ func NewKitchenPassController(service kitchenpasssvc.Service) KitchenPassControl
 
 // GetSkillPage godoc
 // @Summary 		Get AI Kitchen Pass skill page
-// @Description Returns a markdown skill document for an active AI Kitchen Pass token.
+// @Description Returns a markdown, JSON, or OpenAPI skill document for an active AI Kitchen Pass token depending on the Accept header.
 // @Tags 				AI
-// @Produce 		plain
+// @Produce 		json
 // @Param       token path string true "AI Kitchen Pass token"
 // @Success 		200 {string} string
 // @Failure     404 {string} string
 // @Router 			/ai/{token} [get]
 func (c *kitchenPassController) GetSkillPage(ctx *gin.Context) {
-	ctx.Header("Content-Type", "text/markdown; charset=utf-8")
 	ctx.Header("Cache-Control", "no-store")
 	ctx.Header("Referrer-Policy", "no-referrer")
 	ctx.Header("X-Robots-Tag", "noindex, nofollow")
@@ -53,5 +53,24 @@ func (c *kitchenPassController) GetSkillPage(ctx *gin.Context) {
 		return
 	}
 
-	ctx.String(http.StatusOK, kitchenpasssvc.RenderSkillDocument(token))
+	accept := ctx.GetHeader("Accept")
+	switch {
+	case strings.Contains(accept, "application/openapi+json"):
+		body, err := kitchenpasssvc.RenderSkillOpenAPI(token)
+		if err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		ctx.Data(http.StatusOK, "application/openapi+json; charset=utf-8", body)
+	case strings.Contains(accept, "application/json"):
+		body, err := kitchenpasssvc.RenderSkillJSON(token)
+		if err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		ctx.Data(http.StatusOK, "application/json; charset=utf-8", body)
+	default:
+		ctx.Header("Content-Type", "text/markdown; charset=utf-8")
+		ctx.String(http.StatusOK, kitchenpasssvc.RenderSkillDocument(token))
+	}
 }
