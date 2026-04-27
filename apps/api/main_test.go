@@ -42,6 +42,8 @@ func (testRecipeController) CreateRecipeMedia(c *gin.Context)      { c.Status(ht
 func (testRecipeController) GetRecipeMedia(c *gin.Context)         { c.Status(http.StatusOK) }
 func (testRecipeController) GetAdminRecipeMedias(c *gin.Context)   { c.Status(http.StatusOK) }
 func (testRecipeController) FetchRecipe(c *gin.Context)            { c.Status(http.StatusOK) }
+func (testRecipeController) ForkRecipeRevision(c *gin.Context)     { c.Status(http.StatusOK) }
+func (testRecipeController) GetRecipeForks(c *gin.Context)         { c.Status(http.StatusOK) }
 
 type testSearchController struct{}
 
