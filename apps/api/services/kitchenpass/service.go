@@ -202,8 +202,7 @@ func disabledKitchenPassResponse() *dtos.KitchenPassResponse {
 
 func (s *service) buildResponse(record *models.PersonalAccessToken, token string) *dtos.KitchenPassResponse {
 	skillURL := s.baseURL + "/skill.md"
-	copyText := fmt.Sprintf(`
-Use this as my 4ks recipe memory:
+	copyText := fmt.Sprintf(`Use this as my 4ks recipe memory:
 
 First read %s to fully understand the skill.
 
