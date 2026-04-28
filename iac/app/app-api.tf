@@ -108,6 +108,7 @@ resource "google_cloud_run_v2_service" "api" {
       image = "${local.container_registry}/api/app:${var.api_build_number}"
 
       resources {
+        startup_cpu_boost = true
         cpu_idle = true
         limits = {
           cpu    = "1000m"

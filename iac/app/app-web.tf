@@ -26,6 +26,7 @@ resource "google_cloud_run_v2_service" "web" {
       image = "${local.container_registry}/web/app:${var.web_build_number}"
 
       resources {
+        startup_cpu_boost = true
         cpu_idle = true
         limits = {
           cpu    = "1000m"

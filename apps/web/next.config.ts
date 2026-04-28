@@ -4,6 +4,19 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['local.4ks.io'],
   productionBrowserSourceMaps: false,
   reactStrictMode: true,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Vary',
+            value: 'RSC, Next-Router-State-Tree, Next-Router-Prefetch',
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       {
