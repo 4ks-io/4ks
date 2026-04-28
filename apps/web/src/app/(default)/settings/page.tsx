@@ -13,6 +13,7 @@ import DeveloperTools from '@/components/DeveloperTools';
 import AppHeader from '@/components/AppHeader';
 import SettingsKitchenPass from '@/components/SettingsKitchenPass';
 import { serverClient } from '@/trpc/serverClient';
+import log from '@/libs/logger';
 
 export const metadata: Metadata = {
   title: '4ks Settings',
@@ -24,6 +25,15 @@ export default async function SettingsPage({
   const { user } = await handleUserNavigation(Page.AUTHENTICATED);
   const session = await auth0.getSession();
   const kitchenPass = await serverClient.users.getKitchenPass();
+
+  log().Info(new Error(), [
+    { k: 'event', v: 'settings_page_kitchen_pass_loaded' },
+    { k: 'hasSession', v: !!session?.user },
+    { k: 'hasUser', v: !!user },
+    { k: 'userId', v: user?.id ?? '' },
+    { k: 'kitchenPassEnabled', v: !!kitchenPass?.enabled },
+    { k: 'hasCopyText', v: !!kitchenPass?.copyText },
+  ]);
 
   if (!session || !session?.user || !user || !user?.username) {
     return <div>Error</div>;

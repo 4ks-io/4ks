@@ -4,6 +4,7 @@ import { auth0 } from '@/libs/auth0';
 import { getAPIClient, handleAPIError } from '..';
 import { headAuthenticatedUser } from './headAuthenticatedUser';
 import { logTrpc } from '@/server/trpc';
+import log from '@/libs/logger';
 
 export const usersRouter = router({
   get: publicProcedure.input(z.string()).query(async (opts) => {
@@ -35,7 +36,17 @@ export const usersRouter = router({
     const s = performance.now();
 
     try {
-      return await api.users.getApiUserKitchenPass();
+      log().Info(new Error(), [
+        { k: 'event', v: 'users_getKitchenPass_request' },
+      ]);
+      const result = await api.users.getApiUserKitchenPass();
+      log().Info(new Error(), [
+        { k: 'event', v: 'users_getKitchenPass_response' },
+        { k: 'enabled', v: !!result?.enabled },
+        { k: 'hasCopyText', v: !!result?.copyText },
+        { k: 'hasCreatedDate', v: !!result?.createdDate },
+      ]);
+      return result;
     } catch (e) {
       handleAPIError(e);
     } finally {
