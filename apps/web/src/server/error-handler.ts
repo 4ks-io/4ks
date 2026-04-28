@@ -2,6 +2,13 @@ import { TRPCError } from '@trpc/server';
 import log from '@/libs/logger';
 import { redirect } from 'next/navigation';
 
+const AUTH_ERROR_CODES = new Set([
+  'failed_to_refresh_token',
+  'missing_session',
+  'access_token_expired',
+  'invalid_grant',
+]);
+
 export interface APIError {
   url: string;
   status: number;
@@ -46,6 +53,10 @@ export const HttpStatusCode: HttpStatusCodeType = {
 };
 
 export function handleAPIError(e: any) {
+  if (AUTH_ERROR_CODES.has(e?.code) || AUTH_ERROR_CODES.has(e?.cause?.code)) {
+    redirect('/auth/login');
+  }
+
   const err = e as APIError;
   log().Error(new Error(), [
     { k: 'code', v: HttpStatusCode[err.status] },

@@ -43,10 +43,10 @@ export const usersRouter = router({
     }
   }),
   exists: publicProcedure.query(async () => {
-    const { token } = await auth0.getAccessToken();
     const s = performance.now();
 
     try {
+      const { token } = await auth0.getAccessToken();
       return await headAuthenticatedUser(token);
     } catch (e) {
       handleAPIError(e);
