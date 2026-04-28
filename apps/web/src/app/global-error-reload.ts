@@ -36,7 +36,11 @@ export function parseGlobalErrorReloadState(value: string | null) {
       return null;
     }
 
-    return parsed satisfies GlobalErrorReloadState;
+    return {
+      count: parsed.count,
+      scheduledAt: parsed.scheduledAt,
+      pathname: parsed.pathname,
+    };
   } catch {
     return null;
   }
