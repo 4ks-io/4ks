@@ -1,17 +1,59 @@
 'use client';
 
 import { useEffect } from 'react';
+import {
+  GLOBAL_ERROR_RELOAD_DELAY_MS,
+  GLOBAL_ERROR_RELOAD_LIMIT,
+  recordGlobalErrorReload,
+  shouldScheduleGlobalErrorReload,
+} from './global-error-reload';
 
-// When a client-side RSC navigation fails (e.g. cold-start stream error), force a
-// full-page reload. The browser retries as a plain HTML request, which always succeeds.
-export default function GlobalError({}: { error: Error & { digest?: string } }) {
+// Only retry a narrow class of transient RSC failures, and cap retries so
+// persistent server errors don't get trapped in a reload loop.
+export default function GlobalError({
+  error,
+}: {
+  error: Error & { digest?: string };
+}) {
   useEffect(() => {
-    window.location.reload();
-  }, []);
+    const pathname = window.location.pathname;
+    const storage = window.sessionStorage;
+    const now = Date.now();
+
+    if (
+      !shouldScheduleGlobalErrorReload({
+        error,
+        now,
+        pathname,
+        storage,
+      })
+    ) {
+      return;
+    }
+
+    recordGlobalErrorReload({ now, pathname, storage });
+
+    const timeoutId = window.setTimeout(() => {
+      window.location.reload();
+    }, GLOBAL_ERROR_RELOAD_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [error]);
 
   return (
     <html>
-      <body />
+      <body>
+        <p>
+          We hit a temporary loading error. Waiting at least{' '}
+          {GLOBAL_ERROR_RELOAD_DELAY_MS / 1000}s before retrying.
+        </p>
+        <p>Automatic retries are limited to {GLOBAL_ERROR_RELOAD_LIMIT}.</p>
+        <button onClick={() => window.location.reload()} type="button">
+          Retry now
+        </button>
+      </body>
     </html>
   );
 }
