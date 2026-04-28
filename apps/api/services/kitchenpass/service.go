@@ -30,7 +30,7 @@ const (
 
 var (
 	// ErrKitchenPassNotFound indicates no active Kitchen Pass exists for the user or token.
-	ErrKitchenPassNotFound     = errors.New("kitchen pass not found")
+	ErrKitchenPassNotFound = errors.New("kitchen pass not found")
 	// ErrInvalidKitchenPassToken indicates the provided bearer token is not a Kitchen Pass token.
 	ErrInvalidKitchenPassToken = errors.New("invalid kitchen pass token")
 )
@@ -202,8 +202,14 @@ func disabledKitchenPassResponse() *dtos.KitchenPassResponse {
 
 func (s *service) buildResponse(record *models.PersonalAccessToken, token string) *dtos.KitchenPassResponse {
 	skillURL := s.baseURL + "/skill.md"
-	copyText := fmt.Sprintf(
-		"Use this as my 4ks recipe memory:\n\n%s\n\nSecret Authentication header:\nAuthorization: Bearer %s\n\nBefore saving or changing a recipe, search my 4ks recipes first to avoid duplicates.",
+	copyText := fmt.Sprintf(`
+Use this as my 4ks recipe memory:
+
+First read %s to fully understand the skill.
+
+Secret Authentication header:
+Authorization: Bearer %s
+`,
 		skillURL,
 		token,
 	)

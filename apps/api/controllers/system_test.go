@@ -32,8 +32,10 @@ func (s *stubProber) Probe(ctx context.Context) error {
 	return s.err
 }
 
-func okProber(name string) *stubProber  { return &stubProber{name: name} }
-func errProber(name string) *stubProber { return &stubProber{name: name, err: errors.New("connection refused")} }
+func okProber(name string) *stubProber { return &stubProber{name: name} }
+func errProber(name string) *stubProber {
+	return &stubProber{name: name, err: errors.New("connection refused")}
+}
 
 func newTestRouter(version string, deps SystemControllerDeps) *gin.Engine {
 	gin.SetMode(gin.TestMode)
