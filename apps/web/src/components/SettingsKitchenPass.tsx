@@ -98,6 +98,26 @@ export default function SettingsKitchenPass({
   }, []);
 
   React.useEffect(() => {
+    if (!initialKitchenPass) {
+      return;
+    }
+
+    const current = kitchenPassQuery.data;
+    const shouldHydrateFromServer =
+      !current ||
+      (!!initialKitchenPass.enabled && !current.enabled) ||
+      (!!initialKitchenPass.copyText && !current.copyText);
+
+    if (!shouldHydrateFromServer) {
+      return;
+    }
+
+    // Server-rendered settings data is fresher than any previously cached
+    // client query result from an earlier navigation.
+    utils.users.getKitchenPass.setData(undefined, initialKitchenPass);
+  }, [initialKitchenPass, kitchenPassQuery.data, utils.users.getKitchenPass]);
+
+  React.useEffect(() => {
     console.info('[kitchen-pass] settings component state', {
       hasInitialKitchenPass: !!initialKitchenPass,
       initialEnabled: !!initialKitchenPass?.enabled,
@@ -122,7 +142,7 @@ export default function SettingsKitchenPass({
     kitchenPassQuery.error,
   ]);
 
-  const kitchenPass = kitchenPassQuery.data;
+  const kitchenPass = kitchenPassQuery.data ?? initialKitchenPass;
   const createdDate = isHydrated ? formatDate(kitchenPass?.createdDate) : undefined;
   const lastUsedDate = isHydrated ? formatDate(kitchenPass?.lastUsedDate) : undefined;
   const isBusy =
