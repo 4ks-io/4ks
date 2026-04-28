@@ -4,7 +4,6 @@ import Stack from '@mui/material/Stack';
 import { models_Instruction } from '@4ks/api-fetch';
 import { useRecipeContext } from '@/providers/recipe-context';
 import RecipeDraggableInstructions from './RecipeDraggableInstructions';
-import RecipeInstruction from './RecipeInstruction';
 import { SectionTitle } from '../../SectionTitle';
 import AddIcon from '@mui/icons-material/Add';
 import IconButton from '@mui/material/IconButton';
@@ -68,20 +67,13 @@ export default function RecipeInstructions(props: RecipeInstructionsProps) {
   );
 
   const fallback = (
-    <ul
-      style={{ listStyleType: 'none', paddingInlineStart: '0px' }}
-      className="Instructions"
-    >
+    <ol className="Instructions" style={{ paddingInlineStart: '24px' }}>
       {props.instructions.map((instruction, index) => (
-        <li key={`instruction_${index}_${instruction.id}`}>
-          <RecipeInstruction
-            index={index}
-            data={instruction}
-            isDragging={false}
-          />
+        <li key={`instruction_${index}_${instruction.id}`} style={{ padding: '4px 0', fontSize: 20 }}>
+          {instruction.text}
         </li>
       ))}
-    </ul>
+    </ol>
   );
 
   return (

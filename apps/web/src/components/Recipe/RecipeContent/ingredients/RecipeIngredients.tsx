@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import Stack from '@mui/material/Stack';
 import { models_Ingredient } from '@4ks/api-fetch';
 import { useRecipeContext } from '@/providers/recipe-context';
-import RecipeIngredient from './RecipeIngredient';
 import { SectionTitle } from '../../SectionTitle';
 import AddIcon from '@mui/icons-material/Add';
 import IconButton from '@mui/material/IconButton';
@@ -69,12 +68,9 @@ export default function RecipeIngredients(props: RecipeIngredientsProps) {
       className="ingredients"
     >
       {props.ingredients.map((ingredient, index) => (
-        <li key={`ingredient_${index}_${ingredient.id}`}>
-          <RecipeIngredient
-            index={index}
-            data={ingredient}
-            isDragging={false}
-          />
+        <li key={`ingredient_${index}_${ingredient.id}`} style={{ padding: '4px 0', fontSize: 20 }}>
+          {ingredient.quantity && <span style={{ marginRight: 8 }}>{ingredient.quantity}</span>}
+          <span>{ingredient.name}</span>
         </li>
       ))}
     </ul>
