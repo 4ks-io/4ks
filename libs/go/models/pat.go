@@ -1,3 +1,4 @@
+// Package models defines shared domain types used across 4ks services.
 package models
 
 import "time"

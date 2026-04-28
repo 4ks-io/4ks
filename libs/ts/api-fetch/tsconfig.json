@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "ES6",
+    "module": "es2020",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -9,7 +9,7 @@
     "target": "es2018",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
+    "rootDir": "./src",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
