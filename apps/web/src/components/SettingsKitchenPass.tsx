@@ -117,31 +117,6 @@ export default function SettingsKitchenPass({
     utils.users.getKitchenPass.setData(undefined, initialKitchenPass);
   }, [initialKitchenPass, kitchenPassQuery.data, utils.users.getKitchenPass]);
 
-  React.useEffect(() => {
-    console.info('[kitchen-pass] settings component state', {
-      hasInitialKitchenPass: !!initialKitchenPass,
-      initialEnabled: !!initialKitchenPass?.enabled,
-      queryStatus: kitchenPassQuery.status,
-      fetchStatus: kitchenPassQuery.fetchStatus,
-      isLoading: kitchenPassQuery.isLoading,
-      isFetching: kitchenPassQuery.isFetching,
-      isError: kitchenPassQuery.isError,
-      hasData: !!kitchenPassQuery.data,
-      enabled: !!kitchenPassQuery.data?.enabled,
-      hasCopyText: !!kitchenPassQuery.data?.copyText,
-      error: kitchenPassQuery.error?.message,
-    });
-  }, [
-    initialKitchenPass,
-    kitchenPassQuery.status,
-    kitchenPassQuery.fetchStatus,
-    kitchenPassQuery.isLoading,
-    kitchenPassQuery.isFetching,
-    kitchenPassQuery.isError,
-    kitchenPassQuery.data,
-    kitchenPassQuery.error,
-  ]);
-
   const kitchenPass = kitchenPassQuery.data ?? initialKitchenPass;
   const createdDate = isHydrated ? formatDate(kitchenPass?.createdDate) : undefined;
   const lastUsedDate = isHydrated ? formatDate(kitchenPass?.lastUsedDate) : undefined;

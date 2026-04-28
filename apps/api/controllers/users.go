@@ -276,28 +276,11 @@ func (c *userController) UpdateUser(ctx *gin.Context) {
 // @Router 			/api/user/kitchen-pass [get]
 // @Security 		ApiKeyAuth
 func (c *userController) GetKitchenPass(ctx *gin.Context) {
-	userID := ctx.GetString("id")
-	log.Info().
-		Str("user_id", userID).
-		Str("auth_type", ctx.GetString("authType")).
-		Msg("get kitchen pass requested")
-
-	status, err := c.kitchenPasssvc.GetStatus(ctx, userID)
+	status, err := c.kitchenPasssvc.GetStatus(ctx, ctx.GetString("id"))
 	if err != nil {
-		log.Error().
-			Err(err).
-			Str("user_id", userID).
-			Msg("get kitchen pass failed")
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-
-	log.Info().
-		Str("user_id", userID).
-		Bool("enabled", status.Enabled).
-		Bool("has_copy_text", status.CopyText != nil).
-		Bool("has_created_date", status.CreatedDate != nil).
-		Msg("get kitchen pass resolved")
 
 	ctx.JSON(http.StatusOK, status)
 }

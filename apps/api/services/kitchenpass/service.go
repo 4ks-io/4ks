@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/api/iterator"
 )
 
@@ -89,41 +88,19 @@ func New(store *firestore.Client, cfg Config) Service {
 func (s *service) GetStatus(ctx context.Context, userID string) (*dtos.KitchenPassResponse, error) {
 	record, err := s.store.GetByUserID(ctx, userID)
 	if err != nil {
-		log.Warn().
-			Err(err).
-			Str("user_id", userID).
-			Msg("kitchen pass lookup failed")
 		if errors.Is(err, ErrKitchenPassNotFound) {
 			return disabledKitchenPassResponse(), nil
 		}
 		return nil, err
 	}
-	log.Info().
-		Str("user_id", userID).
-		Bool("has_encrypted_token", record.EncryptedToken != "").
-		Bool("has_token_preview", record.TokenPreview != "").
-		Bool("revoked", record.RevokedDate != nil).
-		Msg("kitchen pass record loaded")
 	if record.RevokedDate != nil {
-		log.Info().
-			Str("user_id", userID).
-			Msg("kitchen pass is revoked")
 		return disabledKitchenPassResponse(), nil
 	}
 
 	token, err := s.decryptToken(record.EncryptedToken)
 	if err != nil {
-		log.Error().
-			Err(err).
-			Str("user_id", userID).
-			Int("encrypted_token_length", len(record.EncryptedToken)).
-			Msg("failed to decrypt kitchen pass token")
 		return nil, err
 	}
-	log.Info().
-		Str("user_id", userID).
-		Int("token_length", len(token)).
-		Msg("kitchen pass token decrypted")
 
 	return s.buildResponse(record, token), nil
 }
