@@ -10,8 +10,13 @@ import (
 	"context"
 	"encoding/json"
 
-	"cloud.google.com/go/pubsub"
+	"fmt"
+
+	"cloud.google.com/go/pubsub/v2"
+	pubsubpb "cloud.google.com/go/pubsub/v2/apiv1/pubsubpb"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"4ks/apps/api/utils"
 )
@@ -26,7 +31,7 @@ type FetcherOpts struct {
 type FetcherPubSubConnection struct {
 	ProjectID string
 	TopicID   string
-	Topic     *pubsub.Topic
+	Publisher *pubsub.Publisher
 }
 
 // Service is the interface for the user service
@@ -48,23 +53,20 @@ type fetcherService struct {
 
 // New creates a new user service
 func New(ctx context.Context, sysFlags *utils.SystemFlags, client *pubsub.Client, reso FetcherOpts, userSvc userService.Service, recipeSvc recipeService.Service, searchSvc searchService.Service, staticSvc staticService.Service) Service {
-	// connect to sender topic
-	t := client.Topic(reso.TopicID)
-
 	// check if topic exists
-	ok, err := t.Exists(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Str("project", reso.ProjectID).Str("topic", reso.TopicID).Msg("failed to check fetcher topic")
-	}
-	if !ok {
+	topicName := fmt.Sprintf("projects/%s/topics/%s", reso.ProjectID, reso.TopicID)
+	_, err := client.TopicAdminClient.GetTopic(ctx, &pubsubpb.GetTopicRequest{Topic: topicName})
+	if status.Code(err) == codes.NotFound {
 		log.Fatal().Str("project", reso.ProjectID).Str("topic", reso.TopicID).Msg("fetcher topic not found — run init-pubsub.sh")
+	} else if err != nil {
+		log.Fatal().Err(err).Str("project", reso.ProjectID).Str("topic", reso.TopicID).Msg("failed to check fetcher topic")
 	}
 
 	// create sender
 	sender := &FetcherPubSubConnection{
 		ProjectID: reso.ProjectID,
 		TopicID:   reso.TopicID,
-		Topic:     t,
+		Publisher: client.Publisher(reso.TopicID),
 	}
 
 	return &fetcherService{
@@ -80,7 +82,7 @@ func New(ctx context.Context, sysFlags *utils.SystemFlags, client *pubsub.Client
 
 func (s *fetcherService) Send(ctx context.Context, data *models.FetcherRequest) (string, error) {
 	var id string
-	t := s.sender.Topic
+	t := s.sender.Publisher
 
 	d, err := json.Marshal(data)
 	if err != nil {

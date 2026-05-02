@@ -4,6 +4,7 @@
 dist
 /tmp
 /out-tsc
+*.tsbuildinfo
 
 # dependencies
 node_modules
@@ -72,3 +73,5 @@ ignore
 .agent/
 .codex/
 .claude/
+
+utils/recipe-search-refresh/recipe-search-refresh

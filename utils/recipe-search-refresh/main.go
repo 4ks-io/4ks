@@ -97,7 +97,7 @@ Batch:
 			log.Info().Str("id", document.ID).Str("title", r.CurrentRevision.Name).Msg("upsert")
 
 			if !cfg.DryRun {
-				_, err = ts.Collection("recipes").Documents().Upsert(document)
+				_, err = ts.Collection("recipes").Documents().Upsert(context.Background(), document)
 				if err != nil {
 					log.Error().Err(err).Caller().Msg("upsert failed")
 				}

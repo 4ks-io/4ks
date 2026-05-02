@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/v2"
+	pubsubpb "cloud.google.com/go/pubsub/v2/apiv1/pubsubpb"
 	"cloud.google.com/go/storage"
 	"github.com/typesense/typesense-go/typesense"
 	"google.golang.org/api/iterator"
@@ -50,8 +51,8 @@ func NewTypesenseProber(client *typesense.Client) Prober {
 
 func (p *typesenseProber) Name() string { return "typesense" }
 
-func (p *typesenseProber) Probe(_ context.Context) error {
-	ok, err := p.client.Health(typesenseProbeTimeout)
+func (p *typesenseProber) Probe(ctx context.Context) error {
+	ok, err := p.client.Health(ctx, typesenseProbeTimeout)
 	if err != nil {
 		return err
 	}
@@ -75,14 +76,12 @@ func NewPubSubProber(client *pubsub.Client, topicID string) Prober {
 func (p *pubsubProber) Name() string { return "pubsub" }
 
 func (p *pubsubProber) Probe(ctx context.Context) error {
-	exists, err := p.client.Topic(p.topicID).Exists(ctx)
-	if err != nil {
-		return err
-	}
-	if !exists {
+	topicName := fmt.Sprintf("projects/%s/topics/%s", p.client.Project(), p.topicID)
+	_, err := p.client.TopicAdminClient.GetTopic(ctx, &pubsubpb.GetTopicRequest{Topic: topicName})
+	if status.Code(err) == codes.NotFound {
 		return fmt.Errorf("topic %q not found", p.topicID)
 	}
-	return nil
+	return err
 }
 
 // storageProber checks Cloud Storage connectivity by fetching bucket attributes.

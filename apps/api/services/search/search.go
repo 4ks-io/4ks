@@ -4,6 +4,7 @@ package search
 import (
 	"4ks/apps/api/dtos"
 	"4ks/libs/go/models"
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -63,7 +64,7 @@ func (s searchService) UpsertSearchRecipeDocument(r *models.Recipe) error {
 		ImageURL:    banner,
 	}
 
-	_, err := s.client.Collection("recipes").Documents().Upsert(document)
+	_, err := s.client.Collection("recipes").Documents().Upsert(context.Background(), document)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func (s searchService) UpsertSearchRecipeDocument(r *models.Recipe) error {
 }
 
 func (s searchService) RemoveSearchRecipeDocument(id string) error {
-	_, err := s.client.Collection("recipes").Document(id).Delete()
+	_, err := s.client.Collection("recipes").Document(id).Delete(context.Background())
 	if err != nil {
 		return err
 	}
@@ -96,7 +97,7 @@ func (s searchService) SearchRecipesByAuthor(query string, author string, perPag
 		PerPage:  &perPage,
 	}
 
-	result, err := s.client.Collection("recipes").Documents().Search(params)
+	result, err := s.client.Collection("recipes").Documents().Search(context.Background(), params)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +155,7 @@ func (s searchService) CreateSearchRecipeCollection() error {
 		},
 	}
 
-	_, err := s.client.Collections().Create(schema)
+	_, err := s.client.Collections().Create(context.Background(), schema)
 	log.Error().Err(err).Msg("failed to create search collection")
 	if err != nil {
 		return err

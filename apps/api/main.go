@@ -24,7 +24,7 @@ import (
 	tracing "4ks/libs/go/tracer"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/v2"
 	"cloud.google.com/go/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
