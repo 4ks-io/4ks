@@ -15,7 +15,7 @@ func New(_ *utils.RuntimeConfig, _ app.Services) *Server {
 	return &Server{}
 }
 
-// Start blocks until shutdown until MCP tool handlers are implemented.
+// Start blocks until the process context is cancelled.
 func (s *Server) Start(ctx context.Context) error {
 	<-ctx.Done()
 	return nil

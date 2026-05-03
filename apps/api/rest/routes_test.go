@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"sort"
 	"testing"
 
 	controllers "4ks/apps/api/controllers"
@@ -185,4 +187,67 @@ func TestAppendRoutes(t *testing.T) {
 			t.Fatalf("expected 401, got %d", rec.Code)
 		}
 	})
+}
+
+func TestAppendRoutesRouteTable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	cfg := utils.MinimalRuntimeConfig()
+	cfg.System.Development = true
+	cfg.Features.SwaggerEnabled = true
+	AppendRoutes(cfg, router, newTestControllers(), stubKitchenPassService{})
+
+	var got []string
+	for _, route := range router.Routes() {
+		got = append(got, route.Method+" "+route.Path)
+	}
+	sort.Strings(got)
+
+	want := []string{
+		"DELETE /api/recipes/:id",
+		"DELETE /api/user/events/:id",
+		"DELETE /api/user/kitchen-pass",
+		"DELETE /api/users/:id",
+		"GET /api/_admin/recipes/:id/media",
+		"GET /api/healthcheck",
+		"GET /api/ready",
+		"GET /api/recipes",
+		"GET /api/recipes/:id",
+		"GET /api/recipes/:id/forks",
+		"GET /api/recipes/:id/media",
+		"GET /api/recipes/:id/revisions",
+		"GET /api/recipes/author/:username",
+		"GET /api/recipes/revisions/:revisionID",
+		"GET /api/recipes/search",
+		"GET /api/swagger/*any",
+		"GET /api/user/",
+		"GET /api/user/kitchen-pass",
+		"GET /api/users",
+		"GET /api/users/:id",
+		"HEAD /api/user/",
+		"PATCH /api/recipes/:id",
+		"PATCH /api/user/",
+		"PATCH /api/users/:id",
+		"POST /api/_admin/init-search-collections",
+		"POST /api/_admin/recipes",
+		"POST /api/_dev/init-search-collections",
+		"POST /api/_dev/recipes",
+		"POST /api/_fetcher/recipes",
+		"POST /api/recipes",
+		"POST /api/recipes/:id/fork",
+		"POST /api/recipes/:id/media",
+		"POST /api/recipes/:id/star",
+		"POST /api/recipes/fetch",
+		"POST /api/recipes/revisions/:revisionID/fork",
+		"POST /api/user/",
+		"POST /api/user/kitchen-pass",
+		"POST /api/users/",
+		"POST /api/users/username",
+	}
+	sort.Strings(want)
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("route table mismatch\n got: %#v\nwant: %#v", got, want)
+	}
 }

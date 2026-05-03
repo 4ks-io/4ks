@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -78,6 +79,13 @@ func buildRuntimeWiring(ctx context.Context, cfg *utils.RuntimeConfig, reservedW
 		ImageURL:           cfg.Recipe.ImageURL,
 	})
 	fetcher := fetcherService.New(ctx, &sysFlags, psub, feso, user, recipe, search, static)
+	restDeps, err := buildRestDeps(cfg, fire, psub, ts, store, feso.TopicID)
+	if err != nil {
+		_ = psub.Close()
+		_ = fire.Close()
+		_ = store.Close()
+		return runtimeWiring{}, err
+	}
 
 	return runtimeWiring{
 		services: app.Services{
@@ -88,15 +96,7 @@ func buildRuntimeWiring(ctx context.Context, cfg *utils.RuntimeConfig, reservedW
 			Fetcher:     fetcher,
 			KitchenPass: kitchenPass,
 		},
-		restDeps: rest.Deps{
-			Version: getAPIVersion(cfg.Routes.VersionFilePath),
-			System: controllers.SystemControllerDeps{
-				DB:        controllers.NewFirestoreProber(fire),
-				Search:    controllers.NewTypesenseProber(ts),
-				Messaging: controllers.NewPubSubProber(psub, feso.TopicID),
-				Storage:   controllers.NewStorageProber(store, cfg.Recipe.DistributionBucket),
-			},
-		},
+		restDeps: restDeps,
 		cleanup: func() {
 			_ = psub.Close()
 			_ = fire.Close()
@@ -105,17 +105,33 @@ func buildRuntimeWiring(ctx context.Context, cfg *utils.RuntimeConfig, reservedW
 	}, nil
 }
 
+func buildRestDeps(cfg *utils.RuntimeConfig, fire *firestore.Client, psub *pubsub.Client, ts *typesense.Client, store *storage.Client, topicID string) (rest.Deps, error) {
+	version, err := getAPIVersion(cfg.Routes.VersionFilePath)
+	if err != nil {
+		return rest.Deps{}, err
+	}
+
+	return rest.Deps{
+		Version: version,
+		System: controllers.SystemControllerDeps{
+			DB:        controllers.NewFirestoreProber(fire),
+			Search:    controllers.NewTypesenseProber(ts),
+			Messaging: controllers.NewPubSubProber(psub, topicID),
+			Storage:   controllers.NewStorageProber(store, cfg.Recipe.DistributionBucket),
+		},
+	}, nil
+}
+
 // getAPIVersion returns the api version stored in the VERSION file.
-func getAPIVersion(versionFilePath string) string {
-	version := "0.0.0"
+func getAPIVersion(versionFilePath string) (string, error) {
 	if versionFilePath != "" {
 		v, err := os.ReadFile(versionFilePath)
 		if err != nil {
-			panic(err)
+			return "", fmt.Errorf("read api version file: %w", err)
 		}
-		version = strings.TrimSuffix(string(v), "\n")
+		return strings.TrimSuffix(string(v), "\n"), nil
 	}
-	return version
+	return "0.0.0", nil
 }
 
 // configureLogging configures global logging based on the config file and flags.

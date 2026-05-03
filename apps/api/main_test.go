@@ -7,7 +7,11 @@ import (
 
 func TestGetAPIVersion(t *testing.T) {
 	t.Run("defaults when version path is unset", func(t *testing.T) {
-		if got := getAPIVersion(""); got != "0.0.0" {
+		got, err := getAPIVersion("")
+		if err != nil {
+			t.Fatalf("getAPIVersion: %v", err)
+		}
+		if got != "0.0.0" {
 			t.Fatalf("expected default version, got %q", got)
 		}
 	})
@@ -24,8 +28,18 @@ func TestGetAPIVersion(t *testing.T) {
 			t.Fatalf("Close: %v", err)
 		}
 
-		if got := getAPIVersion(file.Name()); got != "1.2.3" {
+		got, err := getAPIVersion(file.Name())
+		if err != nil {
+			t.Fatalf("getAPIVersion: %v", err)
+		}
+		if got != "1.2.3" {
 			t.Fatalf("expected file-backed version, got %q", got)
+		}
+	})
+
+	t.Run("returns error when version file cannot be read", func(t *testing.T) {
+		if _, err := getAPIVersion(t.TempDir() + "/missing-version"); err == nil {
+			t.Fatal("expected error for missing version file")
 		}
 	})
 }
