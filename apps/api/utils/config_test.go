@@ -84,6 +84,10 @@ func TestLoadRuntimeConfig(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_JAEGER_ENDPOINT", "http://jaeger:14268/api/traces")
 	t.Setenv("GOOGLE_CLOUD_PROJECT", "gcp-project")
 	t.Setenv("OTEL_SERVICE_NAME", "4ks-api-test")
+	t.Setenv("MCP_ENABLED", "true")
+	t.Setenv("MCP_BASE_URL", "https://mcp.example.com/mcp")
+	t.Setenv("MCP_AUDIENCE", "https://mcp.example.com/mcp")
+	t.Setenv("MCP_PORT", "9444")
 
 	cfg, err := LoadRuntimeConfig()
 	if err != nil {
@@ -101,5 +105,8 @@ func TestLoadRuntimeConfig(t *testing.T) {
 	}
 	if cfg.PubSub.FetcherTopic != "fetcher-custom" || !cfg.Tracing.Enabled || cfg.Tracing.ExporterType != "JAEGER" {
 		t.Fatalf("unexpected typed runtime config: %+v %+v", cfg.PubSub, cfg.Tracing)
+	}
+	if !cfg.MCP.Enabled || cfg.MCP.BaseURL != "https://mcp.example.com/mcp" || cfg.MCP.Audience != "https://mcp.example.com/mcp" || cfg.MCP.Port != "9444" {
+		t.Fatalf("unexpected mcp config: %+v", cfg.MCP)
 	}
 }

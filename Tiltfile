@@ -48,7 +48,10 @@ local_resource(
 # API
 k8s_resource(
     workload='api',
-    port_forwards='0.0.0.0:5734:5000',
+    port_forwards=[
+        '0.0.0.0:5734:5000',
+        '0.0.0.0:5735:4444',
+    ],
     labels=['backend'],
     resource_deps=['bootstrap (secrets)', 'init (pubsub)', 'pubsub', 'firestore', 'typesense']
 )

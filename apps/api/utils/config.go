@@ -75,6 +75,14 @@ type Auth0Config struct {
 	Audience string `validate:"required"`
 }
 
+// MCPConfig contains ChatGPT MCP server settings.
+type MCPConfig struct {
+	Enabled  bool
+	Port     string `validate:"omitempty,numeric"`
+	BaseURL  string `validate:"omitempty,http_url"`
+	Audience string `validate:"omitempty,http_url"`
+}
+
 // KitchenPassConfig contains AI Kitchen Pass secrets and URL settings.
 type KitchenPassConfig struct {
 	BaseURL          string `validate:"required,http_url"`
@@ -138,6 +146,7 @@ type RuntimeConfig struct {
 	Firestore   FirestoreConfig
 	HTTP        HTTPSecurityConfig
 	KitchenPass KitchenPassConfig
+	MCP         MCPConfig
 	PubSub      PubSubConfig
 	Recipe      RecipeRuntimeConfig
 	Routes      RouteConfig
@@ -168,6 +177,10 @@ type rawRuntimeConfig struct {
 	JaegerEndpoint      string `default:"http://jaeger:14268/api/traces" env:"OTEL_EXPORTER_JAEGER_ENDPOINT"`
 	MediaFallbackURL    string `required:"true" env:"MEDIA_FALLBACK_URL"`
 	MediaImageURL       string `required:"true" env:"MEDIA_IMAGE_URL"`
+	MCPBaseURL          string `env:"MCP_BASE_URL"`
+	MCPEnabled          bool   `env:"MCP_ENABLED"`
+	MCPPort             string `default:"8000" env:"MCP_PORT"`
+	MCPAudience         string `env:"MCP_AUDIENCE"`
 	PATDigestSecret     string `required:"true" env:"PAT_DIGEST_SECRET"`
 	PATEncryptionSecret string `required:"true" env:"PAT_ENCRYPTION_SECRET"`
 	Port                string `default:"5000" env:"PORT"`
@@ -235,6 +248,12 @@ func MinimalRuntimeConfig() *RuntimeConfig {
 			BaseURL:          "https://www.4ks.io",
 			DigestSecret:     "01234567890123456789012345678901",
 			EncryptionSecret: "abcdefghijklmnopqrstuvwxyz012345",
+		},
+		MCP: MCPConfig{
+			Enabled:  false,
+			Port:     "8000",
+			BaseURL:  "https://www.4ks.io/mcp",
+			Audience: "https://www.4ks.io/mcp",
 		},
 		Typesense: TypesenseConfig{
 			URL:    "http://typesense:8108",
@@ -320,6 +339,12 @@ func buildRuntimeConfig(raw rawRuntimeConfig) (*RuntimeConfig, error) {
 			DigestSecret:     raw.PATDigestSecret,
 			EncryptionSecret: raw.PATEncryptionSecret,
 		},
+		MCP: MCPConfig{
+			Enabled:  raw.MCPEnabled,
+			Port:     raw.MCPPort,
+			BaseURL:  raw.MCPBaseURL,
+			Audience: raw.MCPAudience,
+		},
 		Typesense: TypesenseConfig{
 			URL:    raw.TypesenseURL,
 			APIKey: raw.TypesenseAPIKey,
@@ -358,6 +383,12 @@ func buildRuntimeConfig(raw rawRuntimeConfig) (*RuntimeConfig, error) {
 
 	if cfg.Routes.Port == "" {
 		return nil, fmt.Errorf("PORT must not be empty")
+	}
+	if cfg.MCP.Enabled && cfg.MCP.BaseURL == "" {
+		return nil, fmt.Errorf("MCP.BaseURL is required when MCP.Enabled=true")
+	}
+	if cfg.MCP.Enabled && cfg.MCP.Audience == "" {
+		cfg.MCP.Audience = cfg.MCP.BaseURL
 	}
 	if err := validateRuntimeConfig(cfg); err != nil {
 		return nil, err

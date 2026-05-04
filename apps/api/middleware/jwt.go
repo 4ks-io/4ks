@@ -143,11 +143,15 @@ func RequireJWT(cfg utils.Auth0Config) gin.HandlerFunc {
 
 // EnforceJWT is a net/http middleware wrapper retained for compatibility with existing callers.
 func EnforceJWT(cfg utils.Auth0Config) func(next http.Handler) http.Handler {
-	jwtValidator := buildJWTValidator(cfg)
-
-	errorHandler := func(w http.ResponseWriter, _ *http.Request, err error) {
+	return EnforceJWTWithErrorHandler(cfg, func(w http.ResponseWriter, _ *http.Request, err error) {
 		writeJWTUnauthorized(w, err)
-	}
+	})
+}
+
+// EnforceJWTWithErrorHandler validates bearer JWTs for net/http handlers with a custom
+// unauthorized response.
+func EnforceJWTWithErrorHandler(cfg utils.Auth0Config, errorHandler func(http.ResponseWriter, *http.Request, error)) func(next http.Handler) http.Handler {
+	jwtValidator := buildJWTValidator(cfg)
 
 	middleware := jwtmiddleware.New(
 		jwtValidator.ValidateToken,
