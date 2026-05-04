@@ -8,14 +8,17 @@ import (
 
 // User godoc
 type User struct {
-	ID            string      `firestore:"id" json:"id"`
-	Events        []UserEvent `firestore:"events,omitempty" json:"events"`
-	Username      string      `firestore:"username,omitempty" json:"username"`
-	UsernameLower string      `firestore:"usernameLower,omitempty" json:"usernameLower"`
-	DisplayName   string      `firestore:"displayName,omitempty" json:"displayName"`
-	EmailAddress  string      `firestore:"emailAddress,omitempty" json:"emailAddress"`
-	CreatedDate   time.Time   `firestore:"createdDate,omitempty" json:"createdDate"`
-	UpdatedDate   time.Time   `firestore:"updatedDate,omitempty" json:"updatedDate"`
+	ID               string      `firestore:"id" json:"id"`
+	Events           []UserEvent `firestore:"events,omitempty" json:"events"`
+	Username         string      `firestore:"username,omitempty" json:"username"`
+	UsernameLower    string      `firestore:"usernameLower,omitempty" json:"usernameLower"`
+	DisplayName      string      `firestore:"displayName,omitempty" json:"displayName"`
+	EmailAddress     string      `firestore:"emailAddress,omitempty" json:"emailAddress"`
+	CreatedDate      time.Time   `firestore:"createdDate,omitempty"     json:"createdDate"`
+	UpdatedDate      time.Time   `firestore:"updatedDate,omitempty"     json:"updatedDate"`
+	OnboardingSource string      `firestore:"onboardingSource,omitempty" json:"onboardingSource,omitempty"`
+	FirstLogin       bool        `firestore:"firstLogin"                json:"firstLogin"`
+	WelcomeEmailSent bool        `firestore:"welcomeEmailSent"          json:"welcomeEmailSent"`
 }
 
 // UserSummary is a compact user reference nested inside Recipe and RecipeRevision documents.

@@ -77,10 +77,11 @@ type Auth0Config struct {
 
 // MCPConfig contains ChatGPT MCP server settings.
 type MCPConfig struct {
-	Enabled  bool
-	Port     string `validate:"omitempty,numeric"`
-	BaseURL  string `validate:"omitempty,http_url"`
-	Audience string `validate:"omitempty,http_url"`
+	Enabled    bool
+	Port       string `validate:"omitempty,numeric"`
+	BaseURL    string `validate:"omitempty,http_url"`
+	Audience   string `validate:"omitempty,http_url"`
+	AppBaseURL string `validate:"omitempty,http_url"`
 }
 
 // KitchenPassConfig contains AI Kitchen Pass secrets and URL settings.
@@ -250,10 +251,11 @@ func MinimalRuntimeConfig() *RuntimeConfig {
 			EncryptionSecret: "abcdefghijklmnopqrstuvwxyz012345",
 		},
 		MCP: MCPConfig{
-			Enabled:  false,
-			Port:     "8000",
-			BaseURL:  "https://www.4ks.io/mcp",
-			Audience: "https://www.4ks.io/mcp",
+			Enabled:    false,
+			Port:       "8000",
+			BaseURL:    "https://www.4ks.io/mcp",
+			Audience:   "https://www.4ks.io/mcp",
+			AppBaseURL: "https://www.4ks.io",
 		},
 		Typesense: TypesenseConfig{
 			URL:    "http://typesense:8108",
@@ -340,10 +342,11 @@ func buildRuntimeConfig(raw rawRuntimeConfig) (*RuntimeConfig, error) {
 			EncryptionSecret: raw.PATEncryptionSecret,
 		},
 		MCP: MCPConfig{
-			Enabled:  raw.MCPEnabled,
-			Port:     raw.MCPPort,
-			BaseURL:  raw.MCPBaseURL,
-			Audience: raw.MCPAudience,
+			Enabled:    raw.MCPEnabled,
+			Port:       raw.MCPPort,
+			BaseURL:    raw.MCPBaseURL,
+			Audience:   raw.MCPAudience,
+			AppBaseURL: raw.AppBaseURL,
 		},
 		Typesense: TypesenseConfig{
 			URL:    raw.TypesenseURL,

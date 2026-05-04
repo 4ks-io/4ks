@@ -17,6 +17,11 @@ import (
 )
 
 // CustomClaims contains custom data we want from the token.
+// Email is sourced from the https://4ks.io/email custom claim, which the Auth0
+// Post-Login Action only populates for verified email addresses. A valid JWT
+// accepted by this audience implies email verification at the tenant level.
+// ID (https://4ks.io/id) is the Firestore document ID injected after account
+// creation; it is absent for users who have not yet created a 4ks account.
 type CustomClaims struct {
 	Scope       string `json:"scope"`
 	Email       string `json:"https://4ks.io/email"`

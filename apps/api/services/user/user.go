@@ -40,6 +40,7 @@ type Service interface {
 	GetUserByUsername(context.Context, string) (*models.User, error)
 	GetUserByEmail(context.Context, string) (*models.User, error)
 	CreateUser(context.Context, string, string, *dtos.CreateUser) (*models.User, error)
+	CreateUserFromMCP(ctx context.Context, email, username string) (*models.User, error)
 	UpdateUserByID(context.Context, string, *dtos.UpdateUser) (*models.User, error)
 	DeleteUser(context.Context, string) error
 	CreateUserEventByUserID(context.Context, string, *dtos.CreateUserEvent) (*models.UserEvent, error)
@@ -153,19 +154,48 @@ func (s userService) GetUserByEmail(ctx context.Context, emailAddress string) (*
 	return user, nil
 }
 
+func (s userService) CreateUserFromMCP(ctx context.Context, email, username string) (*models.User, error) {
+	if err := s.TestName(ctx, username); err != nil {
+		return nil, err
+	}
+	userID := uuid.NewString()
+	newUser := &models.User{
+		ID:               userID,
+		Username:         username,
+		UsernameLower:    strings.ToLower(username),
+		EmailAddress:     strings.ToLower(email),
+		OnboardingSource: "mcp",
+		FirstLogin:       true,
+		WelcomeEmailSent: false,
+		CreatedDate:      time.Now().UTC(),
+		UpdatedDate:      time.Now().UTC(),
+	}
+	if _, err := s.userCollection.Doc(userID).Create(ctx, newUser); err != nil {
+		return nil, err
+	}
+	return newUser, nil
+}
+
 func (s userService) CreateUser(ctx context.Context, userID string, userEmail string, user *dtos.CreateUser) (*models.User, error) {
+	// Email is the identity key: if a user with this address already exists
+	// (e.g., auto-created via MCP), return them instead of creating a duplicate.
+	if existing, err := s.GetUserByEmail(ctx, strings.ToLower(userEmail)); err == nil {
+		return existing, nil
+	}
+
 	if err := s.TestName(ctx, user.Username); err != nil {
 		return nil, err
 	}
 
 	newUser := &models.User{
-		ID:            userID,
-		Username:      user.Username,
-		UsernameLower: strings.ToLower(user.Username),
-		DisplayName:   user.DisplayName,
-		EmailAddress:  strings.ToLower(userEmail),
-		CreatedDate:   time.Now().UTC(),
-		UpdatedDate:   time.Now().UTC(),
+		ID:               userID,
+		Username:         user.Username,
+		UsernameLower:    strings.ToLower(user.Username),
+		DisplayName:      user.DisplayName,
+		EmailAddress:     strings.ToLower(userEmail),
+		OnboardingSource: "web",
+		CreatedDate:      time.Now().UTC(),
+		UpdatedDate:      time.Now().UTC(),
 	}
 
 	if _, err := s.userCollection.Doc(userID).Create(ctx, newUser); err != nil {

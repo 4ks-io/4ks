@@ -1,4 +1,4 @@
-4ks (pronouned "forks") is a recipe memory app. This file is intended for AI agents acting on behalf of the user, such as ChatGPT or Claude, to understand how to interact with the 4ks API and what actions are allowed or disallowed. It provides guidelines for authentication, allowed actions, working rules, and error handling when making API calls to manage the user's recipes.
+Forks is a recipe memory app. This file is intended for AI agents acting on behalf of the user, such as ChatGPT or Claude, to understand how to interact with the 4ks API and what actions are allowed or disallowed. It provides guidelines for authentication, allowed actions, working rules, and error handling when making API calls to manage the user's recipes.
 
 If you don't have it already, get your personal Kitchen Pass token from `/settings` on the same host as this skill page.
 

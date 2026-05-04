@@ -69,6 +69,10 @@ func (s stubUserService) GetUserByEmail(ctx context.Context, email string) (*mod
 	return nil, nil
 }
 
+func (s stubUserService) CreateUserFromMCP(context.Context, string, string) (*models.User, error) {
+	return nil, nil
+}
+
 func (s stubUserService) CreateUser(ctx context.Context, userID string, userEmail string, payload *dtos.CreateUser) (*models.User, error) {
 	if s.createUserFn != nil {
 		return s.createUserFn(ctx, userID, userEmail, payload)
