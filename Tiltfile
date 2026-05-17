@@ -73,6 +73,11 @@ ts_unit_test_ignores = [
     '**/__tests__/**',
 ]
 
+web_build_ignores = ts_unit_test_ignores + [
+    'apps/web/.next',
+    'apps/web/.next/**',
+]
+
 # RESOURCES
 api_yaml = str(read_file('dev/deploy/api.yaml'))
 if tunnel_enabled:
@@ -211,7 +216,7 @@ docker_build(
     'web',
     context='.',
     dockerfile='apps/web/Dockerfile.dev',
-    ignore=ts_unit_test_ignores,
+    ignore=web_build_ignores,
     only=[
         'apps/web',
         'libs/ts',

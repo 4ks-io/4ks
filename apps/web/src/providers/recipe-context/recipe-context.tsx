@@ -62,11 +62,7 @@ export function RecipeContextProvider({
 
     setMediaMutex(false);
 
-    if (
-      mediaData.isSuccess &&
-      mediaData.data?.data &&
-      state.media.length != mediaData.data.data.length
-    ) {
+    if (mediaData.isSuccess && mediaData.data?.data) {
       dispatch({
         type: RecipeContextAction.SET_MEDIA,
         payload: mediaData.data.data,

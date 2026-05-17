@@ -1,12 +1,14 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useFilePicker, FileContent } from 'use-file-picker';
+import { models_MediaStatus } from '@4ks/api-fetch';
 import { useRecipeContext } from '@/providers/recipe-context';
 import { RecipeMediaViewImage } from '@/components/Recipe/RecipeMedia/RecipeMediaViewImage';
 import Grid from '@mui/material/Grid2';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import log from '@/libs/logger';
 import { trpc } from '@/trpc/client';
@@ -15,13 +17,29 @@ import Stack from '@mui/material/Stack';
 import CircularProgress from '@mui/material/CircularProgress';
 import { green } from '@mui/material/colors';
 
+const MEDIA_SOURCE_AI = 1;
+
+function getMediaSource(media: unknown) {
+  return (media as { source?: number }).source;
+}
+
+function isPendingMedia(media: { status?: models_MediaStatus }) {
+  return (
+    media.status === models_MediaStatus.MediaStatusRequested ||
+    media.status === models_MediaStatus.MediaStatusProcessing
+  );
+}
+
 export default function RecipeMedia({ user, recipe, media }: RecipeMediaProps) {
   const rtx = useRecipeContext();
   // const user = trpc.users.getAuthenticated.useQuery().data;
   // const signedURLData = trpc.recipes.getSignedURL.useMutation();
   const signedURLData = trpc.recipes.getSignedURL.useMutation();
+  const generateAIImageData = trpc.recipes.generateAIImage.useMutation();
 
   const [fetchingSignedURL, setFetchingSignedURL] = useState(false);
+  const [generatingAIImage, setGeneratingAIImage] = useState(false);
+  const [pendingRefreshCount, setPendingRefreshCount] = useState(0);
 
   const [openFileSelector, { filesContent, loading, errors, clear }] =
     useFilePicker({
@@ -38,6 +56,26 @@ export default function RecipeMedia({ user, recipe, media }: RecipeMediaProps) {
     rtx.resetMedia();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const hasPendingMedia = rtx.media.some(isPendingMedia);
+
+  useEffect(() => {
+    if (!hasPendingMedia) {
+      setPendingRefreshCount(0);
+      return;
+    }
+
+    if (pendingRefreshCount >= 3) {
+      return;
+    }
+
+    const refreshPendingMedia = window.setInterval(() => {
+      rtx.resetMedia();
+      setPendingRefreshCount((count) => count + 1);
+    }, 10000);
+
+    return () => window.clearInterval(refreshPendingMedia);
+  }, [hasPendingMedia, pendingRefreshCount, rtx]);
 
   const uploadFile = useCallback(
     async (signedURL: string) => {
@@ -172,6 +210,33 @@ export default function RecipeMedia({ user, recipe, media }: RecipeMediaProps) {
     });
   }
 
+  async function handleAIGenerate() {
+    if (hasBlockingAIMedia) {
+      return;
+    }
+
+    setGeneratingAIImage(true);
+    try {
+      await generateAIImageData.mutateAsync({
+        recipeID: recipe?.id || rtx?.recipeId,
+      });
+      await new Promise((r) => setTimeout(r, 2000));
+      rtx.resetMedia();
+    } catch (e) {
+      if ((e as { data?: { code?: string } })?.data?.code === 'CONFLICT') {
+        alert(
+          'An AI image already exists or is being generated for this recipe.'
+        );
+        rtx.resetMedia();
+        return;
+      }
+      log().Error(new Error(), [{ k: 'msg', v: 'ai image generation failed' }]);
+      alert('AI image generation failed. Please try again.');
+    } finally {
+      setGeneratingAIImage(false);
+    }
+  }
+
   function handleSelectMedia() {
     openFileSelector();
   }
@@ -179,6 +244,12 @@ export default function RecipeMedia({ user, recipe, media }: RecipeMediaProps) {
   const isContributor =
     recipe?.contributors &&
     recipe?.contributors.map((c) => c.id).includes(user?.id);
+
+  const hasBlockingAIMedia = rtx.media.some(
+    (m) =>
+      getMediaSource(m) === MEDIA_SOURCE_AI &&
+      (isPendingMedia(m) || m.status === models_MediaStatus.MediaStatusReady)
+  );
 
   function SelectMediaButton() {
     return (
@@ -188,7 +259,21 @@ export default function RecipeMedia({ user, recipe, media }: RecipeMediaProps) {
         onClick={handleSelectMedia}
         sx={{ marginBottom: 2 }}
       >
-        Select Image
+        Upload Image
+      </Button>
+    );
+  }
+
+  function AIGenerateButton() {
+    return (
+      <Button
+        startIcon={<AutoAwesomeIcon />}
+        variant="outlined"
+        onClick={handleAIGenerate}
+        disabled={generatingAIImage || hasBlockingAIMedia}
+        sx={{ marginBottom: 2, marginLeft: 1 }}
+      >
+        {generatingAIImage ? 'Generating…' : 'AI Generate'}
       </Button>
     );
   }
@@ -230,7 +315,10 @@ export default function RecipeMedia({ user, recipe, media }: RecipeMediaProps) {
       <Box sx={{ m: 1, position: 'relative' }}>
         {/* <Stack> */}
         {filesContent.length == 0 ? (
-          <SelectMediaButton />
+          <>
+            <SelectMediaButton />
+            <AIGenerateButton />
+          </>
         ) : (
           <UploadMediaButton />
         )}

@@ -1,58 +1,24 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Snackbar from '@mui/material/Snackbar';
+import { useShiftHoldReveal } from '@/libs/use-shift-hold-reveal';
 
 type DeveloperToolsProps = {
   t: string;
 };
 
 export default function DeveloperTools({ t }: DeveloperToolsProps) {
-  const [shiftHeld, setShiftHeld] = useState(false);
-  const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Shift' && !e.repeat) {
-        setShiftHeld(true);
-        if (!timerRef.current) {
-          timerRef.current = setTimeout(() => {
-            setRevealed(true);
-            timerRef.current = null;
-          }, 4000);
-        }
-      }
-    }
-
-    function handleKeyUp(e: KeyboardEvent) {
-      if (e.key === 'Shift') {
-        setShiftHeld(false);
-        setRevealed(false);
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-          timerRef.current = null;
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+  const revealed = useShiftHoldReveal();
 
   function handleClick() {
     navigator.clipboard.writeText(t);
     setCopied(true);
   }
 
-  if (!shiftHeld || !revealed) return null;
+  if (!revealed) return null;
 
   return (
     <Box

@@ -2,7 +2,7 @@
 
 url=https://local.4ks.io/api/_dev
 
-curl -s -k -X 'POST' "$url/init-search-collections" \
+curl -s -k -o /dev/null -X 'POST' "$url/init-search-collections" \
   -H 'accept: application/json' \
   -d ''
 

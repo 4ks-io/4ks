@@ -1,4 +1,9 @@
 definitions:
+  controllers.generateAIImageRequest:
+    properties:
+      prompt:
+        type: string
+    type: object
   dtos.CreateRecipe:
     properties:
       banner:
@@ -346,7 +351,11 @@ definitions:
         items:
           $ref: '#/definitions/models.UserEvent'
         type: array
+      firstLogin:
+        type: boolean
       id:
+        type: string
+      onboardingSource:
         type: string
       updatedDate:
         type: string
@@ -354,6 +363,8 @@ definitions:
         type: string
       usernameLower:
         type: string
+      welcomeEmailSent:
+        type: boolean
     type: object
   models.UserEvent:
     properties:
@@ -662,6 +673,35 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update Recipe
+      tags:
+      - Recipes
+  /api/recipes/{recipeID}/ai-image:
+    post:
+      consumes:
+      - application/json
+      description: Generates an image via OpenAI and attaches it as a recipe media
+        record
+      parameters:
+      - description: Recipe ID
+        in: path
+        name: recipeID
+        required: true
+        type: string
+      - description: Optional prompt
+        in: body
+        name: payload
+        schema:
+          $ref: '#/definitions/controllers.generateAIImageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RecipeMedia'
+      security:
+      - ApiKeyAuth: []
+      summary: Generate an AI image for a recipe
       tags:
       - Recipes
   /api/recipes/{recipeID}/fork:

@@ -92,6 +92,15 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers, kitch
 		},
 		KeyFunc: middleware.RateLimitByUserOrIP,
 	})
+	aiImageLimit := middleware.NewRateLimitMiddleware(rateLimitStore, middleware.RateLimitPolicy{
+		Name: "ai-image",
+		// AI image generation calls an external paid API, so it gets a tighter budget.
+		Rules: []middleware.RateLimitRule{
+			middleware.QPSRule(1),
+			middleware.QPMRule(3),
+		},
+		KeyFunc: middleware.RateLimitByUserOrIP,
+	})
 
 	// system
 	r.GET("/api/ready", c.System.CheckReadiness)
@@ -157,6 +166,7 @@ func AppendRoutes(cfg *utils.RuntimeConfig, r *gin.Engine, c *Controllers, kitch
 			recipesJWTOnly.POST("/:id/star", authenticatedWriteLimit, c.Recipe.StarRecipe)
 			// Media initialization is its own abuse target because it creates a signed upload URL.
 			recipesJWTOnly.POST("/:id/media", mediaInitLimit, c.Recipe.CreateRecipeMedia)
+			recipesJWTOnly.POST("/:id/ai-image", aiImageLimit, c.Recipe.GenerateRecipeAIImage)
 			recipesJWTOnly.DELETE("/:id", authenticatedWriteLimit, c.Recipe.DeleteRecipe)
 		}
 

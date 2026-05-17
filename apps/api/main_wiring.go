@@ -11,6 +11,7 @@ import (
 	controllers "4ks/apps/api/controllers"
 	"4ks/apps/api/rest"
 	fetcherService "4ks/apps/api/services/fetcher"
+	imagegenService "4ks/apps/api/services/imagegen"
 	kitchenPassService "4ks/apps/api/services/kitchenpass"
 	recipeService "4ks/apps/api/services/recipe"
 	searchService "4ks/apps/api/services/search"
@@ -78,6 +79,12 @@ func buildRuntimeWiring(ctx context.Context, cfg *utils.RuntimeConfig, reservedW
 		ServiceAccountName: cfg.Recipe.ServiceAccountName,
 		ImageURL:           cfg.Recipe.ImageURL,
 	})
+	var imagegen imagegenService.Service
+	if cfg.ImageGen.APIKey != "" {
+		imagegen = imagegenService.New(cfg.ImageGen.APIKey, cfg.ImageGen.Model)
+		log.Info().Str("model", cfg.ImageGen.Model).Msg("imagegen service initialized")
+	}
+
 	fetcher := fetcherService.New(ctx, &sysFlags, psub, feso, user, recipe, search, static)
 	restDeps, err := buildRestDeps(cfg, fire, psub, ts, store, feso.TopicID)
 	if err != nil {
@@ -95,6 +102,7 @@ func buildRuntimeWiring(ctx context.Context, cfg *utils.RuntimeConfig, reservedW
 			Static:      static,
 			Fetcher:     fetcher,
 			KitchenPass: kitchenPass,
+			ImageGen:    imagegen,
 		},
 		restDeps: restDeps,
 		cleanup: func() {

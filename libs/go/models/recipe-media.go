@@ -12,6 +12,15 @@ const (
 	MediaBestUseInstruction MediaBestUse = 2
 )
 
+// MediaSource describes how a media asset was created.
+type MediaSource int
+
+// MediaSource constants.
+const (
+	MediaSourceUpload MediaSource = 0
+	MediaSourceAI     MediaSource = 1
+)
+
 // RecipeMediaVariant holds a single resized variant of a recipe media asset.
 type RecipeMediaVariant struct {
 	MaxWidth int    `firestore:"maxWidth" json:"maxWidth"`
@@ -30,6 +39,7 @@ type RecipeMedia struct {
 	OwnerID      string               `firestore:"ownerId" json:"ownerId"`
 	Status       MediaStatus          `firestore:"status" json:"status"`
 	BestUse      MediaBestUse         `firestore:"bestUse" json:"bestUse"`
+	Source       MediaSource          `firestore:"source" json:"source"`
 	CreatedDate  time.Time            `firestore:"createdDate" json:"createdDate"`
 	UpdatedDate  time.Time            `firestore:"updatedDate" json:"updatedDate"`
 }

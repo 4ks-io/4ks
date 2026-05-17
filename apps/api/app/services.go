@@ -3,6 +3,7 @@ package app
 
 import (
 	fetcherService "4ks/apps/api/services/fetcher"
+	imagegenService "4ks/apps/api/services/imagegen"
 	kitchenPassService "4ks/apps/api/services/kitchenpass"
 	recipeService "4ks/apps/api/services/recipe"
 	searchService "4ks/apps/api/services/search"
@@ -18,4 +19,5 @@ type Services struct {
 	Static      staticService.Service
 	Fetcher     fetcherService.Service
 	KitchenPass kitchenPassService.Service
+	ImageGen    imagegenService.Service // nil when OPENAI_API_KEY is unset
 }

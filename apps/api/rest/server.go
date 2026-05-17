@@ -45,7 +45,7 @@ func New(cfg *utils.RuntimeConfig, svc app.Services, deps Deps) (*Server, error)
 
 	c := &Controllers{
 		System: controllers.NewSystemController(deps.Version, deps.System),
-		Recipe: controllers.NewRecipeController(svc.User, svc.Recipe, svc.Search, svc.Static, svc.Fetcher),
+		Recipe: controllers.NewRecipeController(svc.User, svc.Recipe, svc.Search, svc.Static, svc.Fetcher, svc.ImageGen),
 		User:   controllers.NewUserController(svc.User, svc.KitchenPass),
 		Search: controllers.NewSearchController(svc.Search),
 	}

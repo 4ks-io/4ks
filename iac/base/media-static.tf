@@ -52,7 +52,7 @@ resource "google_storage_bucket_object" "skill" {
 }
 
 resource "google_storage_bucket_object" "fallback_image" {
-  count = 28
+  count  = 28
   name   = "static/fallback/f${count.index}.jpg"
   source = "./static/fallback/f${count.index}.jpg"
   bucket = google_storage_bucket.media_static.name

@@ -109,7 +109,7 @@ resource "google_cloud_run_v2_service" "api" {
 
       resources {
         startup_cpu_boost = true
-        cpu_idle = true
+        cpu_idle          = true
         limits = {
           cpu    = "1000m"
           memory = "128Mi"
@@ -205,8 +205,17 @@ resource "google_cloud_run_v2_service" "api" {
         }
       }
       env {
+        name = "OPENAI_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = "openai-api-key"
+            version = "latest"
+          }
+        }
+      }
+      env {
         name  = "MEDIA_FALLBACK_URL"
-        value = "${local.web_url}"
+        value = local.web_url
       }
       env {
         name  = "STATIC_MEDIA_FALLBACK_PREFIX"
@@ -269,6 +278,12 @@ resource "google_secret_manager_secret_iam_member" "api_typesense_api_key" {
 
 resource "google_secret_manager_secret_iam_member" "api_fetcher_psk" {
   secret_id = "api-fetcher-psk"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.api.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "api_openai_api_key" {
+  secret_id = "openai-api-key"
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.api.email}"
 }

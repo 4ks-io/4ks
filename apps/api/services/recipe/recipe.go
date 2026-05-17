@@ -33,6 +33,8 @@ var (
 	ErrRecipeAlreadyStarred = errors.New("recipe already starred")
 	// ErrRecipeRevisionNotFound is returned when a user is unable to find a recipe revision
 	ErrRecipeRevisionNotFound = errors.New("recipe revision not found")
+	// ErrRecipeAIImageAlreadyExists is returned when a recipe already has an AI image or one is being generated
+	ErrRecipeAIImageAlreadyExists = errors.New("recipe ai image already exists")
 	// ErrFailedToSign              = errors.New("failed to sign url")
 )
 
@@ -41,7 +43,11 @@ type Service interface {
 	// create
 	CreateRecipe(context.Context, *dtos.CreateRecipe) (*models.Recipe, error)
 	CreateRecipeMedia(context.Context, *utils.MediaProps, string, string, *sync.WaitGroup) (*models.RecipeMedia, error)
+	CreateRecipeMediaFromBytes(context.Context, []byte, string, string) (*models.RecipeMedia, error)
 	CreateRecipeMediaSignedURL(context.Context, *utils.MediaProps, *sync.WaitGroup) (string, error)
+	ReserveRecipeAIImageMedia(context.Context, string, string) (*models.RecipeMedia, error)
+	WriteRecipeMediaBytes(context.Context, *models.RecipeMedia, []byte) error
+	UpdateRecipeMediaStatus(context.Context, string, models.MediaStatus) error
 	// delete
 	DeleteRecipe(context.Context, string, string) error
 	// get

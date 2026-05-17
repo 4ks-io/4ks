@@ -52,6 +52,7 @@ func (testRecipeController) CreateRecipeMedia(c *gin.Context)      { c.Status(ht
 func (testRecipeController) GetRecipeMedia(c *gin.Context)         { c.Status(http.StatusOK) }
 func (testRecipeController) GetAdminRecipeMedias(c *gin.Context)   { c.Status(http.StatusOK) }
 func (testRecipeController) FetchRecipe(c *gin.Context)            { c.Status(http.StatusOK) }
+func (testRecipeController) GenerateRecipeAIImage(c *gin.Context)  { c.Status(http.StatusOK) }
 func (testRecipeController) ForkRecipeRevision(c *gin.Context)     { c.Status(http.StatusOK) }
 
 type testSearchController struct{}
@@ -235,6 +236,7 @@ func TestAppendRoutesRouteTable(t *testing.T) {
 		"POST /api/_dev/recipes",
 		"POST /api/_fetcher/recipes",
 		"POST /api/recipes",
+		"POST /api/recipes/:id/ai-image",
 		"POST /api/recipes/:id/fork",
 		"POST /api/recipes/:id/media",
 		"POST /api/recipes/:id/star",

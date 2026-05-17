@@ -575,6 +575,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/recipes/{recipeID}/ai-image": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Generates an image via OpenAI and attaches it as a recipe media record",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Recipes"
+                ],
+                "summary": "Generate an AI image for a recipe",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Recipe ID",
+                        "name": "recipeID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Optional prompt",
+                        "name": "payload",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.generateAIImageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RecipeMedia"
+                        }
+                    }
+                }
+            }
+        },
         "/api/recipes/{recipeID}/fork": {
             "post": {
                 "security": [
@@ -1191,6 +1236,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.generateAIImageRequest": {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.CreateRecipe": {
             "type": "object",
             "properties": {
@@ -1703,7 +1756,13 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.UserEvent"
                     }
                 },
+                "firstLogin": {
+                    "type": "boolean"
+                },
                 "id": {
+                    "type": "string"
+                },
+                "onboardingSource": {
                     "type": "string"
                 },
                 "updatedDate": {
@@ -1714,6 +1773,9 @@ const docTemplate = `{
                 },
                 "usernameLower": {
                     "type": "string"
+                },
+                "welcomeEmailSent": {
+                    "type": "boolean"
                 }
             }
         },

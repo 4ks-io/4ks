@@ -60,6 +60,8 @@ if [[ -z "${PAT_ENCRYPTION_SECRET_VALUE}" || "${PAT_ENCRYPTION_SECRET_VALUE}" ==
   echo "warning: generated ephemeral PAT_ENCRYPTION_SECRET for local bootstrap" >&2
 fi
 
+OPENAI_API_KEY_VALUE="${OPENAI_API_KEY:-}"
+
 GOOGLE_CREDS_FILE="${ROOT_DIR}/${GOOGLE_APPLICATION_CREDENTIALS}"
 if [[ ! -f "${GOOGLE_CREDS_FILE}" ]]; then
   echo "missing ${GOOGLE_CREDS_FILE}; add the local Google service account JSON before starting Tilt" >&2
@@ -81,6 +83,7 @@ kubectl create secret generic api-local-secrets \
   --from-literal=API_FETCHER_PSK="${API_FETCHER_PSK_VALUE}" \
   --from-literal=PAT_DIGEST_SECRET="${PAT_DIGEST_SECRET_VALUE}" \
   --from-literal=PAT_ENCRYPTION_SECRET="${PAT_ENCRYPTION_SECRET_VALUE}" \
+  --from-literal=OPENAI_API_KEY="${OPENAI_API_KEY_VALUE}" \
   --dry-run=client \
   -o yaml | kubectl apply -f -
 

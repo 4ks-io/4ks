@@ -195,6 +195,26 @@ export const recipesRouter = router({
       logTrpc(new Error(), opts.input, s, 'recipes.star');
     }
   }),
+  generateAIImage: publicProcedure
+    .input(
+      z.object({
+        recipeID: z.string().trim(),
+        prompt: z.string().optional(),
+      })
+    )
+    .mutation(async (opts) => {
+      const api = await getAPIClient();
+      const s = performance.now();
+      try {
+        return await api.recipes.postApiRecipesAiImage(opts.input.recipeID, {
+          prompt: opts.input.prompt,
+        });
+      } catch (e) {
+        handleAPIError(e);
+      } finally {
+        logTrpc(new Error(), opts.input, s, 'recipes.generateAIImage');
+      }
+    }),
   delete: publicProcedure.input(z.string()).mutation(async (opts) => {
     const api = await getAPIClient();
     const s = performance.now();

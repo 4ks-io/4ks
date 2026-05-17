@@ -84,6 +84,13 @@ type MCPConfig struct {
 	AppBaseURL string `validate:"omitempty,http_url"`
 }
 
+// ImageGenConfig contains OpenAI image generation settings.
+// All fields are optional; the service is disabled when APIKey is empty.
+type ImageGenConfig struct {
+	APIKey string
+	Model  string
+}
+
 // KitchenPassConfig contains AI Kitchen Pass secrets and URL settings.
 type KitchenPassConfig struct {
 	BaseURL          string `validate:"required,http_url"`
@@ -146,6 +153,7 @@ type RuntimeConfig struct {
 	Fetcher     FetcherConfig
 	Firestore   FirestoreConfig
 	HTTP        HTTPSecurityConfig
+	ImageGen    ImageGenConfig
 	KitchenPass KitchenPassConfig
 	MCP         MCPConfig
 	PubSub      PubSubConfig
@@ -180,6 +188,8 @@ type rawRuntimeConfig struct {
 	MediaImageURL       string `required:"true" env:"MEDIA_IMAGE_URL"`
 	MCPBaseURL          string `env:"MCP_BASE_URL"`
 	MCPEnabled          bool   `env:"MCP_ENABLED"`
+	OpenAIAPIKey        string `env:"OPENAI_API_KEY"`
+	OpenAIImageModel    string `env:"OPENAI_IMAGE_MODEL"`
 	MCPPort             string `default:"8000" env:"MCP_PORT"`
 	MCPAudience         string `env:"MCP_AUDIENCE"`
 	PATDigestSecret     string `required:"true" env:"PAT_DIGEST_SECRET"`
@@ -228,6 +238,7 @@ func MinimalRuntimeConfig() *RuntimeConfig {
 			ReservedWordsFile: "./reserved-words",
 			VersionFilePath:   "",
 		},
+		ImageGen: ImageGenConfig{APIKey: "", Model: ""},
 		HTTP: HTTPSecurityConfig{
 			CORS: CORSConfig{
 				AllowedOrigins:   []string{"https://www.4ks.io"},
@@ -332,6 +343,10 @@ func buildRuntimeConfig(raw rawRuntimeConfig) (*RuntimeConfig, error) {
 			VersionFilePath:   raw.VersionFilePath,
 		},
 		HTTP: *httpConfig,
+		ImageGen: ImageGenConfig{
+			APIKey: raw.OpenAIAPIKey,
+			Model:  raw.OpenAIImageModel,
+		},
 		Auth0: Auth0Config{
 			Domain:   raw.Auth0Domain,
 			Audience: raw.Auth0Audience,

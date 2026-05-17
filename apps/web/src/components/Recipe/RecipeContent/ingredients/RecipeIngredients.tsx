@@ -1,10 +1,12 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Stack from '@mui/material/Stack';
 import { models_Ingredient } from '@4ks/api-fetch';
 import { useRecipeContext } from '@/providers/recipe-context';
 import { SectionTitle } from '../../SectionTitle';
+import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
+import AutoFixHigh from '@mui/icons-material/AutoFixHigh';
 import IconButton from '@mui/material/IconButton';
 import RecipeDraggableIngredients from './RecipeDraggableIngredients';
 import {
@@ -68,8 +70,13 @@ export default function RecipeIngredients(props: RecipeIngredientsProps) {
       className="ingredients"
     >
       {props.ingredients.map((ingredient, index) => (
-        <li key={`ingredient_${index}_${ingredient.id}`} style={{ padding: '4px 0', fontSize: 20 }}>
-          {ingredient.quantity && <span style={{ marginRight: 8 }}>{ingredient.quantity}</span>}
+        <li
+          key={`ingredient_${index}_${ingredient.id}`}
+          style={{ padding: '4px 0', fontSize: 20 }}
+        >
+          {ingredient.quantity && (
+            <span style={{ marginRight: 8 }}>{ingredient.quantity}</span>
+          )}
           <span>{ingredient.name}</span>
         </li>
       ))}
@@ -80,9 +87,16 @@ export default function RecipeIngredients(props: RecipeIngredientsProps) {
     <Stack>
       <Stack direction="row" spacing={2}>
         <SectionTitle value={'Ingredients'} />
-        <IconButton aria-label="add" onClick={handleIngredientAdd}>
-          <AddIcon />
-        </IconButton>
+        <Tooltip title="Add Ingredient" placement="top">
+          <IconButton aria-label="add" onClick={handleIngredientAdd}>
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Auto Fix" placement="top">
+          <IconButton aria-label="auto-fix" onClick={handleIngredientAdd}>
+            <AutoFixHigh />
+          </IconButton>
+        </Tooltip>
       </Stack>
 
       {!mounted ? (

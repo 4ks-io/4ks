@@ -9,6 +9,7 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { controllers_generateAIImageRequest } from './models/controllers_generateAIImageRequest';
 export type { dtos_CreateRecipe } from './models/dtos_CreateRecipe';
 export type { dtos_CreateRecipeMedia } from './models/dtos_CreateRecipeMedia';
 export type { dtos_CreateSearchRecipe } from './models/dtos_CreateSearchRecipe';
@@ -29,6 +30,7 @@ export type { models_CreateRecipeMedia } from './models/models_CreateRecipeMedia
 export type { models_Ingredient } from './models/models_Ingredient';
 export type { models_Instruction } from './models/models_Instruction';
 export { models_MediaBestUse } from './models/models_MediaBestUse';
+export { models_MediaSource } from './models/models_MediaSource';
 export { models_MediaStatus } from './models/models_MediaStatus';
 export type { models_Recipe } from './models/models_Recipe';
 export type { models_RecipeMedia } from './models/models_RecipeMedia';

@@ -9,8 +9,11 @@ export type models_User = {
     displayName?: string;
     emailAddress?: string;
     events?: Array<models_UserEvent>;
+    firstLogin?: boolean;
     id?: string;
+    onboardingSource?: string;
     updatedDate?: string;
     username?: string;
     usernameLower?: string;
+    welcomeEmailSent?: boolean;
 };

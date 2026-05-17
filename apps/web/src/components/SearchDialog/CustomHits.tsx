@@ -16,6 +16,7 @@ function CustomHit(h: any, handleClose: () => void) {
 
   return (
     <Card
+      key={id}
       sx={{ display: 'flex', cursor: 'pointer' }}
       onClick={() => {
         handleClose();

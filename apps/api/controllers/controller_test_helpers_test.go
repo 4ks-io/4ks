@@ -181,6 +181,7 @@ func (s stubKitchenPassService) RecordUsage(ctx context.Context, tokenDigest str
 type stubRecipeService struct {
 	createRecipeFn               func(context.Context, *dtos.CreateRecipe) (*models.Recipe, error)
 	createRecipeMediaFn          func(context.Context, *utils.MediaProps, string, string, *sync.WaitGroup) (*models.RecipeMedia, error)
+	createRecipeMediaFromBytesFn func(context.Context, []byte, string, string) (*models.RecipeMedia, error)
 	createRecipeMediaSignedURLFn func(context.Context, *utils.MediaProps, *sync.WaitGroup) (string, error)
 	deleteRecipeFn               func(context.Context, string, string) error
 	getAdminRecipeMediasFn       func(context.Context, string) ([]*models.RecipeMedia, error)
@@ -196,6 +197,9 @@ type stubRecipeService struct {
 	forkRecipeByRevisionIDFn     func(context.Context, string, models.UserSummary) (*models.Recipe, error)
 	starRecipeByIDFn             func(context.Context, string, models.UserSummary) (bool, error)
 	updateRecipeByIDFn           func(context.Context, string, *dtos.UpdateRecipe) (*models.Recipe, error)
+	reserveRecipeAIImageMediaFn  func(context.Context, string, string) (*models.RecipeMedia, error)
+	writeRecipeMediaBytesFn      func(context.Context, *models.RecipeMedia, []byte) error
+	updateRecipeMediaStatusFn    func(context.Context, string, models.MediaStatus) error
 	createMockBannerFn           func(string, string) []models.RecipeMediaVariant
 }
 
@@ -209,6 +213,13 @@ func (s stubRecipeService) CreateRecipe(ctx context.Context, payload *dtos.Creat
 func (s stubRecipeService) CreateRecipeMedia(ctx context.Context, mp *utils.MediaProps, recipeID string, userID string, wg *sync.WaitGroup) (*models.RecipeMedia, error) {
 	if s.createRecipeMediaFn != nil {
 		return s.createRecipeMediaFn(ctx, mp, recipeID, userID, wg)
+	}
+	return nil, nil
+}
+
+func (s stubRecipeService) CreateRecipeMediaFromBytes(ctx context.Context, data []byte, recipeID string, userID string) (*models.RecipeMedia, error) {
+	if s.createRecipeMediaFromBytesFn != nil {
+		return s.createRecipeMediaFromBytesFn(ctx, data, recipeID, userID)
 	}
 	return nil, nil
 }
@@ -316,6 +327,27 @@ func (s stubRecipeService) UpdateRecipeByID(ctx context.Context, recipeID string
 		return s.updateRecipeByIDFn(ctx, recipeID, payload)
 	}
 	return nil, nil
+}
+
+func (s stubRecipeService) ReserveRecipeAIImageMedia(ctx context.Context, recipeID string, userID string) (*models.RecipeMedia, error) {
+	if s.reserveRecipeAIImageMediaFn != nil {
+		return s.reserveRecipeAIImageMediaFn(ctx, recipeID, userID)
+	}
+	return nil, nil
+}
+
+func (s stubRecipeService) WriteRecipeMediaBytes(ctx context.Context, media *models.RecipeMedia, data []byte) error {
+	if s.writeRecipeMediaBytesFn != nil {
+		return s.writeRecipeMediaBytesFn(ctx, media, data)
+	}
+	return nil
+}
+
+func (s stubRecipeService) UpdateRecipeMediaStatus(ctx context.Context, mediaID string, status models.MediaStatus) error {
+	if s.updateRecipeMediaStatusFn != nil {
+		return s.updateRecipeMediaStatusFn(ctx, mediaID, status)
+	}
+	return nil
 }
 
 func (s stubRecipeService) CreateMockBanner(filename string, url string) []models.RecipeMediaVariant {

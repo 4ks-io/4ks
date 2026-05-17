@@ -11,7 +11,7 @@ terraform {
     organization = "4ks"
     workspaces {
       # https://www.terraform.io/cli/cloud/settings
-      tags = ["base","us-east"]
+      tags = ["base", "us-east"]
     }
   }
 }

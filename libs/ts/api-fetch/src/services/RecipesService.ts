@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { controllers_generateAIImageRequest } from '../models/controllers_generateAIImageRequest';
 import type { dtos_CreateRecipe } from '../models/dtos_CreateRecipe';
 import type { dtos_CreateRecipeMedia } from '../models/dtos_CreateRecipeMedia';
 import type { dtos_CreateUserEvent } from '../models/dtos_CreateUserEvent';
@@ -12,6 +13,7 @@ import type { dtos_SearchRecipesResponse } from '../models/dtos_SearchRecipesRes
 import type { dtos_UpdateRecipe } from '../models/dtos_UpdateRecipe';
 import type { models_CreateRecipeMedia } from '../models/models_CreateRecipeMedia';
 import type { models_Recipe } from '../models/models_Recipe';
+import type { models_RecipeMedia } from '../models/models_RecipeMedia';
 import type { models_RecipeRevision } from '../models/models_RecipeRevision';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -197,6 +199,28 @@ export class RecipesService {
         return this.httpRequest.request({
             method: 'PATCH',
             url: '/api/recipes/{recipeID}',
+            path: {
+                'recipeID': recipeId,
+            },
+            body: payload,
+        });
+    }
+
+    /**
+     * Generate an AI image for a recipe
+     * Generates an image via OpenAI and attaches it as a recipe media record
+     * @param recipeId Recipe ID
+     * @param payload Optional prompt
+     * @returns models_RecipeMedia OK
+     * @throws ApiError
+     */
+    public postApiRecipesAiImage(
+        recipeId: string,
+        payload?: controllers_generateAIImageRequest,
+    ): CancelablePromise<models_RecipeMedia> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/api/recipes/{recipeID}/ai-image',
             path: {
                 'recipeID': recipeId,
             },

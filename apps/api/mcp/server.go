@@ -111,7 +111,7 @@ func (s *Server) handler() http.Handler {
 	mcpSrv := mcpserver.NewMCPServer(
 		"4ks-recipes",
 		"0.1.0",
-		mcpserver.WithInstructions("Tools for managing recipes on 4ks.io. Search before create. Fetch the current recipe before update. Do not delete recipes, change profiles, perform admin actions, or upload media."),
+		mcpserver.WithInstructions("Tools for managing recipes on 4ks.io. Search before create. Fetch the current recipe before update. Do not delete recipes, change profiles, or perform admin actions."),
 		mcpserver.WithToolCapabilities(true),
 	)
 
@@ -195,6 +195,17 @@ func (s *Server) handler() http.Handler {
 		mcpsdk.WithReadOnlyHintAnnotation(true),
 		mcpsdk.WithDestructiveHintAnnotation(false),
 	), s.logTool("get_account_status", s.handleGetAccountStatus))
+
+	if s.services.ImageGen != nil {
+		mcpSrv.AddTool(mcpsdk.NewTool("generate_recipe_image",
+			mcpsdk.WithDescription("Generate an AI image for a recipe and attach it as a media record. Returns the media ID and image URL. The image will be available after processing completes (typically a few seconds)."),
+			mcpsdk.WithString("recipe_id", mcpsdk.Description("Recipe ID."), mcpsdk.Required()),
+			mcpsdk.WithString("prompt", mcpsdk.Description("Image generation prompt. Omit to auto-generate from the recipe name.")),
+			mcpsdk.WithReadOnlyHintAnnotation(false),
+			mcpsdk.WithDestructiveHintAnnotation(false),
+			mcpsdk.WithOpenWorldHintAnnotation(true),
+		), s.logTool("generate_recipe_image", s.handleGenerateRecipeImage))
+	}
 
 	sse := mcpserver.NewSSEServer(
 		mcpSrv,
@@ -681,6 +692,72 @@ func (s *Server) handleGetAccountStatus(ctx context.Context, _ mcpsdk.CallToolRe
 		"onboarding_complete": !strings.HasPrefix(user.Username, "user-"),
 		"first_login":         user.FirstLogin,
 		"settings_url":        settingsURL,
+	})
+}
+
+func (s *Server) handleGenerateRecipeImage(ctx context.Context, req mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
+	const tool = "generate_recipe_image"
+
+	recipeID, err := req.RequireString("recipe_id")
+	if err != nil {
+		return mcpToolError(tool, "parse_recipe_id", err)
+	}
+
+	user, err := s.resolveOrCreateMCPUser(ctx)
+	if err != nil {
+		return mcpToolError(tool, "authenticated_user", err)
+	}
+
+	prompt := req.GetString("prompt", "")
+	if prompt == "" {
+		recipe, err := s.services.Recipe.GetRecipeByID(ctx, recipeID)
+		if err != nil {
+			return mcpToolError(tool, "get_recipe_for_prompt", err)
+		}
+		prompt = "A delicious recipe photo for " + recipe.CurrentRevision.Name
+	}
+
+	log.Debug().
+		Str("tool", tool).
+		Str("userID", user.ID).
+		Str("recipeID", recipeID).
+		Int("promptLength", len(prompt)).
+		Msg("generating recipe image")
+
+	media, err := s.services.Recipe.ReserveRecipeAIImageMedia(ctx, recipeID, user.ID)
+	if err != nil {
+		return mcpToolError(tool, "reserve_recipe_media", err)
+	}
+
+	imgBytes, err := s.services.ImageGen.GenerateImage(ctx, prompt)
+	if err != nil {
+		_ = s.services.Recipe.UpdateRecipeMediaStatus(ctx, media.ID, models.MediaStatusErrorUnknown)
+		return mcpToolError(tool, "generate_image", err)
+	}
+
+	if err := s.services.Recipe.WriteRecipeMediaBytes(ctx, media, imgBytes); err != nil {
+		_ = s.services.Recipe.UpdateRecipeMediaStatus(ctx, media.ID, models.MediaStatusErrorUnknown)
+		return mcpToolError(tool, "write_recipe_media", err)
+	}
+
+	imageURL := ""
+	for _, v := range media.Variants {
+		if v.MaxWidth == 1024 {
+			imageURL = v.URL
+			break
+		}
+	}
+
+	log.Info().
+		Str("tool", tool).
+		Str("userID", user.ID).
+		Str("recipeID", recipeID).
+		Str("mediaID", media.ID).
+		Msg("recipe image generated and attached")
+
+	return mcpsdk.NewToolResultJSON(map[string]any{
+		"media_id":  media.ID,
+		"image_url": imageURL,
 	})
 }
 

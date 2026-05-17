@@ -107,6 +107,12 @@ spec:
                 secretKeyRef:
                   name: api-local-secrets
                   key: PAT_ENCRYPTION_SECRET
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-local-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
             - name: MCP_ENABLED
               value: 'true'
             - name: MCP_PORT
