@@ -112,13 +112,13 @@ func TestTestName(t *testing.T) {
 					userService:         service,
 					testAvailableNameFn: tc.available,
 				}
-				if err := service.TestName(context.Background(), tc.input); err != tc.wantErr {
+				if err := service.TestName(t.Context(), tc.input); err != tc.wantErr {
 					t.Fatalf("TestName(%q) error = %v, want %v", tc.input, err, tc.wantErr)
 				}
 				return
 			}
 
-			if err := service.TestName(context.Background(), tc.input); err != tc.wantErr {
+			if err := service.TestName(t.Context(), tc.input); err != tc.wantErr {
 				t.Fatalf("TestName(%q) error = %v, want %v", tc.input, err, tc.wantErr)
 			}
 		})

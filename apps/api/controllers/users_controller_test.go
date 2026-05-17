@@ -129,6 +129,55 @@ func TestUserControllerHeadAuthenticatedUser(t *testing.T) {
 		}
 	})
 
+	t.Run("id miss falls back to email", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewUserController(stubUserService{
+			getUserByIDFn: func(_ context.Context, id string) (*models.User, error) {
+				if id != "stale-claim-id" {
+					t.Fatalf("unexpected id lookup: %q", id)
+				}
+				return nil, usersvc.ErrUserNotFound
+			},
+			getUserByEmailFn: func(_ context.Context, email string) (*models.User, error) {
+				if email != "user@example.com" {
+					t.Fatalf("unexpected email lookup: %q", email)
+				}
+				return &models.User{ID: "email-user-id", EmailAddress: email}, nil
+			},
+		}, stubKitchenPassService{})
+
+		rec := performUserControllerRequest(t, controller.HeadAuthenticatedUser, http.MethodHead, "/api/user", nil, func(ctx *gin.Context) {
+			ctx.Set("id", "stale-claim-id")
+			ctx.Set("email", "USER@example.com")
+		})
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("missing id falls back to email", func(t *testing.T) {
+		t.Parallel()
+
+		controller := NewUserController(stubUserService{
+			getUserByEmailFn: func(_ context.Context, email string) (*models.User, error) {
+				if email != "user@example.com" {
+					t.Fatalf("unexpected email lookup: %q", email)
+				}
+				return &models.User{ID: "email-user-id", EmailAddress: email}, nil
+			},
+		}, stubKitchenPassService{})
+
+		rec := performUserControllerRequest(t, controller.HeadAuthenticatedUser, http.MethodHead, "/api/user", nil, func(ctx *gin.Context) {
+			ctx.Set("email", "USER@example.com")
+		})
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+	})
+
 	t.Run("lookup errors return internal server error", func(t *testing.T) {
 		t.Parallel()
 

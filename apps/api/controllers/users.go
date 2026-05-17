@@ -4,8 +4,10 @@ import (
 	"4ks/apps/api/dtos"
 	kitchenpasssvc "4ks/apps/api/services/kitchenpass"
 	usersvc "4ks/apps/api/services/user"
+	models "4ks/libs/go/models"
 
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -96,6 +98,14 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 		return
 	}
 
+	log.Debug().
+		Str("authType", ctx.GetString("authType")).
+		Str("authID", ctx.GetString("authID")).
+		Str("claimUserID", userID).
+		Str("email", strings.ToLower(userEmail)).
+		Str("username", payload.Username).
+		Msg("REST user create requested")
+
 	createdUser, err := c.usersvc.CreateUser(ctx, userID, userEmail, &payload)
 	if err == usersvc.ErrEmailInUse || err == usersvc.ErrUsernameInUse {
 		ctx.AbortWithError(http.StatusBadRequest, err)
@@ -104,6 +114,12 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+
+	log.Debug().
+		Str("createdUserID", createdUser.ID).
+		Str("createdUserEmail", createdUser.EmailAddress).
+		Str("onboardingSource", createdUser.OnboardingSource).
+		Msg("REST user create resolved")
 
 	ctx.JSON(http.StatusOK, createdUser)
 }
@@ -170,9 +186,7 @@ func (c *userController) GetUser(ctx *gin.Context) {
 // @Router 			/api/user/ [get]
 // @Security 		ApiKeyAuth
 func (c *userController) GetAuthenticatedUser(ctx *gin.Context) {
-	userID := ctx.GetString("id")
-	user, err := c.usersvc.GetUserByID(ctx, userID)
-
+	user, err := c.getAuthenticatedUserByIDOrEmail(ctx, "getAuthenticatedUser")
 	if err == usersvc.ErrUserNotFound {
 		ctx.AbortWithError(http.StatusNotFound, err)
 		return
@@ -198,9 +212,7 @@ func (c *userController) GetAuthenticatedUser(ctx *gin.Context) {
 // @Failure     500		"Internal Error"
 // @Security 		ApiKeyAuth
 func (c *userController) HeadAuthenticatedUser(ctx *gin.Context) {
-	userID := ctx.GetString("id")
-
-	if _, err := c.usersvc.GetUserByID(ctx, userID); err != nil {
+	if _, err := c.getAuthenticatedUserByIDOrEmail(ctx, "headAuthenticatedUser"); err != nil {
 		// handle user not found
 		if err == usersvc.ErrUserNotFound {
 			ctx.JSON(http.StatusNoContent, nil)
@@ -213,6 +225,57 @@ func (c *userController) HeadAuthenticatedUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, nil)
+}
+
+func (c *userController) getAuthenticatedUserByIDOrEmail(ctx *gin.Context, operation string) (*models.User, error) {
+	userID := ctx.GetString("id")
+	email := strings.ToLower(ctx.GetString("email"))
+
+	logger := log.With().
+		Str("operation", operation).
+		Str("authType", ctx.GetString("authType")).
+		Str("authID", ctx.GetString("authID")).
+		Str("claimUserID", userID).
+		Str("email", email).
+		Logger()
+
+	logger.Debug().Msg("REST authenticated user lookup started")
+
+	if userID != "" {
+		user, err := c.usersvc.GetUserByID(ctx, userID)
+		if err == nil {
+			logger.Debug().
+				Str("lookup", "id").
+				Str("resolvedUserID", user.ID).
+				Str("resolvedEmail", user.EmailAddress).
+				Msg("REST authenticated user resolved")
+			return user, nil
+		}
+		if err != usersvc.ErrUserNotFound {
+			return nil, err
+		}
+		logger.Debug().Msg("REST authenticated user lookup by ID missed")
+	}
+
+	if email == "" {
+		logger.Debug().Msg("REST authenticated user lookup has no email fallback")
+		return nil, usersvc.ErrUserNotFound
+	}
+
+	user, err := c.usersvc.GetUserByEmail(ctx, email)
+	if err != nil {
+		if err == usersvc.ErrUserNotFound {
+			logger.Debug().Msg("REST authenticated user lookup by email missed")
+		}
+		return nil, err
+	}
+
+	logger.Debug().
+		Str("lookup", "email").
+		Str("resolvedUserID", user.ID).
+		Str("resolvedEmail", user.EmailAddress).
+		Msg("REST authenticated user resolved")
+	return user, nil
 }
 
 // GetUsers	godoc

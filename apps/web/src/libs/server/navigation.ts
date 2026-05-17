@@ -24,6 +24,8 @@ export async function handleUserNavigation(page: Page): Promise<UserSession> {
   log().Debug(new Error(), [
     { k: 'page', v: page },
     { k: 'session', v: !!session },
+    { k: 'auth0Sub', v: session?.user?.sub ?? '' },
+    { k: 'email', v: session?.user?.email ?? '' },
   ]);
 
   if (!session) {
@@ -43,6 +45,12 @@ export async function handleUserNavigation(page: Page): Promise<UserSession> {
 
   // check user exists
   const data = await serverClient.users.exists();
+  log().Debug(new Error(), [
+    { k: 'page', v: page },
+    { k: 'auth0Sub', v: session.user.sub ?? '' },
+    { k: 'email', v: session.user.email ?? '' },
+    { k: 'authenticatedUserStatus', v: data?.Status ?? 0 },
+  ]);
 
   // handle error / trpc should have crash before this
   if (!data?.Status || ![200, 204].includes(data?.Status)) {

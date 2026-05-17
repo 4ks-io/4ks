@@ -48,11 +48,16 @@ func ExtractCustomClaimsFromClaims(claims *validator.ValidatedClaims) CustomClai
 
 func appendJWTClaims(ctx *gin.Context, claims *validator.ValidatedClaims) {
 	customClaims := ExtractCustomClaimsFromClaims(claims)
+	log.Debug().
+		Str("authID", claims.RegisteredClaims.Subject).
+		Str("claimUserID", customClaims.ID).
+		Str("email", strings.ToLower(customClaims.Email)).
+		Msg("JWT identity claims appended")
 	SetAuthIdentity(ctx, AuthIdentity{
 		AuthID:   claims.RegisteredClaims.Subject,
 		AuthType: AuthTypeJWT,
 		UserID:   customClaims.ID,
-		Email:    customClaims.Email,
+		Email:    strings.ToLower(customClaims.Email),
 	})
 }
 

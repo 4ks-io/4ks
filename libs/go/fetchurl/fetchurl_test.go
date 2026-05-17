@@ -23,14 +23,14 @@ func TestNormalizeRejectsCredentials(t *testing.T) {
 }
 
 func TestValidateRejectsIPLiteral(t *testing.T) {
-	_, err := ValidateWithResolver(context.Background(), "https://127.0.0.1/recipe", staticResolver{})
+	_, err := ValidateWithResolver(t.Context(), "https://127.0.0.1/recipe", staticResolver{})
 	if err == nil {
 		t.Fatal("expected ip literal target to be rejected")
 	}
 }
 
 func TestValidateRejectsBlockedDNSAnswer(t *testing.T) {
-	_, err := ValidateWithResolver(context.Background(), "https://example.com/recipe", staticResolver{
+	_, err := ValidateWithResolver(t.Context(), "https://example.com/recipe", staticResolver{
 		ipAddrs: []net.IPAddr{{IP: net.ParseIP("169.254.169.254")}},
 	})
 	if err == nil {
@@ -39,7 +39,7 @@ func TestValidateRejectsBlockedDNSAnswer(t *testing.T) {
 }
 
 func TestValidateAcceptsPublicHTTPSURL(t *testing.T) {
-	validated, err := ValidateWithResolver(context.Background(), "https://example.com/recipe?a=1", staticResolver{
+	validated, err := ValidateWithResolver(t.Context(), "https://example.com/recipe?a=1", staticResolver{
 		ipAddrs: []net.IPAddr{{IP: net.ParseIP("93.184.216.34")}},
 	})
 	if err != nil {

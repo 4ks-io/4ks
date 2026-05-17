@@ -1,7 +1,6 @@
 package fetcher
 
 import (
-	"context"
 	"errors"
 	"net"
 	"net/netip"
@@ -101,10 +100,10 @@ func TestMustPrefixes(t *testing.T) {
 func TestValidateFetchURLRejectsBadInputs(t *testing.T) {
 	t.Parallel()
 
-	if _, err := validateFetchURL(context.Background(), "https://localhost/recipe"); !errors.Is(err, errBlockedHostname) {
+	if _, err := validateFetchURL(t.Context(), "https://localhost/recipe"); !errors.Is(err, errBlockedHostname) {
 		t.Fatalf("expected blocked hostname error, got %v", err)
 	}
-	if _, err := validateFetchURL(context.Background(), "https://127.0.0.1/recipe"); !errors.Is(err, errIPLiteralNotAllowed) {
+	if _, err := validateFetchURL(t.Context(), "https://127.0.0.1/recipe"); !errors.Is(err, errIPLiteralNotAllowed) {
 		t.Fatalf("expected IP literal error, got %v", err)
 	}
 }

@@ -3,17 +3,18 @@ import React, { useEffect, useState } from 'react';
 import { trpc } from '@/trpc/client';
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
-import Image from 'next/image';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
 import TextField from '@mui/material/TextField';
 import Grid from '@mui/material/Grid2';
 import Box from '@mui/material/Box';
+import Link from '@mui/material/Link';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import UsernameSpecification from '@/components/UsernameSpecifications';
+import { authLogoutPath } from '@/libs/navigation';
 import type { User } from '@auth0/nextjs-auth0/types';
 
 type formValidationError = {
@@ -302,6 +303,19 @@ export default function RegisterComponent({ user }: RegisterComponentProps) {
 
   return (
     <>
+      <Box
+        component="nav"
+        sx={{
+          position: 'fixed',
+          top: 16,
+          right: 16,
+          zIndex: (theme) => theme.zIndex.appBar,
+        }}
+      >
+        <Link href={authLogoutPath} underline="hover" color="text.primary">
+          Logout
+        </Link>
+      </Box>
       <Container component="main" maxWidth="xs">
         <CssBaseline />
         <Box

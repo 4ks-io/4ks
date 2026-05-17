@@ -27,7 +27,7 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	configureLogging()
@@ -51,13 +51,16 @@ func main() {
 			ServiceName:        cfg.Tracing.ServiceName,
 		})
 		defer func() {
-			if err := tp.Shutdown(context.Background()); err != nil {
+			if err := tp.Shutdown(ctx); err != nil {
 				log.Error().Err(err).Msg("Error shutting down tracer provider")
 			}
 		}()
 	}
 
-	wiring, err := buildRuntimeWiring(rootCtx, cfg, reservedWords)
+	logger := log.With().Logger()
+	ctx = logger.WithContext(ctx)
+
+	wiring, err := buildRuntimeWiring(ctx, cfg, reservedWords)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to build runtime wiring")
 	}
@@ -69,7 +72,7 @@ func main() {
 	}
 	mcpSrv := mcp.New(cfg, wiring.services)
 
-	g, ctx := errgroup.WithContext(rootCtx)
+	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return restSrv.Start(ctx) })
 	g.Go(func() error { return mcpSrv.Start(ctx) })
 	if err := g.Wait(); err != nil {

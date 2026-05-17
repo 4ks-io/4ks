@@ -65,7 +65,7 @@ func TestKitchenPassLifecycle(t *testing.T) {
 		now:              func() time.Time { return now },
 	}
 
-	created, err := service.CreateOrRotate(context.Background(), "user-1")
+	created, err := service.CreateOrRotate(t.Context(), "user-1")
 	if err != nil {
 		t.Fatalf("CreateOrRotate returned error: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestKitchenPassLifecycle(t *testing.T) {
 	}
 
 	token := strings.TrimPrefix(strings.Split(strings.Split(*created.CopyText, "Authorization: Bearer ")[1], "\n")[0], "Bearer ")
-	validated, err := service.ValidateToken(context.Background(), token)
+	validated, err := service.ValidateToken(t.Context(), token)
 	if err != nil {
 		t.Fatalf("ValidateToken returned error: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestKitchenPassLifecycle(t *testing.T) {
 
 	rotatedAt := now.Add(5 * time.Minute)
 	service.now = func() time.Time { return rotatedAt }
-	rotated, err := service.CreateOrRotate(context.Background(), "user-1")
+	rotated, err := service.CreateOrRotate(t.Context(), "user-1")
 	if err != nil {
 		t.Fatalf("rotate returned error: %v", err)
 	}
@@ -112,16 +112,16 @@ func TestKitchenPassLifecycle(t *testing.T) {
 		t.Fatalf("expected rotation to produce new tokenized copy text")
 	}
 
-	if _, err := service.ValidateToken(context.Background(), token); !errors.Is(err, ErrKitchenPassNotFound) {
+	if _, err := service.ValidateToken(t.Context(), token); !errors.Is(err, ErrKitchenPassNotFound) {
 		t.Fatalf("expected old token to be invalidated, got %v", err)
 	}
 
 	service.now = func() time.Time { return rotatedAt.Add(5 * time.Minute) }
-	if err := service.Revoke(context.Background(), "user-1"); err != nil {
+	if err := service.Revoke(t.Context(), "user-1"); err != nil {
 		t.Fatalf("Revoke returned error: %v", err)
 	}
 
-	status, err := service.GetStatus(context.Background(), "user-1")
+	status, err := service.GetStatus(t.Context(), "user-1")
 	if err != nil {
 		t.Fatalf("GetStatus returned error: %v", err)
 	}
@@ -130,7 +130,7 @@ func TestKitchenPassLifecycle(t *testing.T) {
 	}
 
 	newToken := strings.TrimPrefix(strings.Split(strings.Split(*rotated.CopyText, "Authorization: Bearer ")[1], "\n")[0], "Bearer ")
-	if _, err := service.ValidateToken(context.Background(), newToken); !errors.Is(err, ErrKitchenPassNotFound) {
+	if _, err := service.ValidateToken(t.Context(), newToken); !errors.Is(err, ErrKitchenPassNotFound) {
 		t.Fatalf("expected revoked token to be rejected, got %v", err)
 	}
 }
@@ -148,24 +148,24 @@ func TestKitchenPassRecordUsage(t *testing.T) {
 		now:              func() time.Time { return now },
 	}
 
-	created, err := service.CreateOrRotate(context.Background(), "user-1")
+	created, err := service.CreateOrRotate(t.Context(), "user-1")
 	if err != nil {
 		t.Fatalf("CreateOrRotate returned error: %v", err)
 	}
 
 	token := strings.Split(strings.Split(*created.CopyText, "Authorization: Bearer ")[1], "\n")[0]
-	record, err := service.ValidateToken(context.Background(), token)
+	record, err := service.ValidateToken(t.Context(), token)
 	if err != nil {
 		t.Fatalf("ValidateToken returned error: %v", err)
 	}
 
 	usedAt := now.Add(7 * time.Minute)
 	service.now = func() time.Time { return usedAt }
-	if err := service.RecordUsage(context.Background(), record.TokenDigest, "searched recipes"); err != nil {
+	if err := service.RecordUsage(t.Context(), record.TokenDigest, "searched recipes"); err != nil {
 		t.Fatalf("RecordUsage returned error: %v", err)
 	}
 
-	status, err := service.GetStatus(context.Background(), "user-1")
+	status, err := service.GetStatus(t.Context(), "user-1")
 	if err != nil {
 		t.Fatalf("GetStatus returned error: %v", err)
 	}

@@ -2,7 +2,6 @@ package function
 
 import (
 	"bytes"
-	"context"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -143,6 +142,6 @@ func TestParseUploadObjectNameRejectsMissingExtension(t *testing.T) {
 func TestUpdateRecipeMediaDevelopmentNoop(t *testing.T) {
 	t.Parallel()
 
-	updater := updateRecipeMedia(context.Background(), RuntimeConfig{Development: true, FirestoreProjectID: "test"}, nil, "media-1")
+	updater := updateRecipeMedia(t.Context(), RuntimeConfig{Development: true, FirestoreProjectID: "test"}, nil, "media-1")
 	updater(MediaStatusReady)
 }

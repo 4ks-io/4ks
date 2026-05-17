@@ -42,20 +42,25 @@ export default function RecipeSocial(props: RecipeSocialProps) {
         )}
         {rtx?.recipe.currentRevision?.link && (
           <Typography variant="body1" gutterBottom>
-            <Link
-              prefetch={false}
-              href={rtx.recipe.currentRevision?.link}
+            <a
+              href={ensureAbsoluteUrl(rtx.recipe.currentRevision?.link)}
               style={{ textDecoration: 'none', color: '#000' }}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <LinkIcon fontSize="small" />
               {getDomain(rtx.recipe.currentRevision?.link) || 'http'}
-            </Link>
+            </a>
           </Typography>
         )}
       </Stack>
       <div style={{ paddingBottom: 30 }} />
     </>
   );
+}
+
+function ensureAbsoluteUrl(url: string): string {
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
 function getDomain(url: string): string {

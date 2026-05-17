@@ -11,6 +11,7 @@ import (
 	firestore "cloud.google.com/go/firestore"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/api/iterator"
 
 	"4ks/apps/api/dtos"
@@ -137,8 +138,11 @@ func (s userService) GetUserByUsername(ctx context.Context, username string) (*m
 }
 
 func (s userService) GetUserByEmail(ctx context.Context, emailAddress string) (*models.User, error) {
-	result, err := s.userCollection.Where("emailAddress", "==", emailAddress).Documents(ctx).GetAll()
+	normalizedEmail := strings.ToLower(strings.TrimSpace(emailAddress))
+	log.Debug().Str("email", normalizedEmail).Msg("user service lookup by email")
+	result, err := s.userCollection.Where("emailAddress", "==", normalizedEmail).Documents(ctx).GetAll()
 	if err != nil || len(result) == 0 {
+		log.Debug().Str("email", normalizedEmail).Msg("user service lookup by email missed")
 		return nil, ErrUserNotFound
 	}
 
@@ -151,6 +155,11 @@ func (s userService) GetUserByEmail(ctx context.Context, emailAddress string) (*
 	}
 
 	user.ID = userSnapshot.Ref.ID
+	log.Debug().
+		Str("email", normalizedEmail).
+		Str("resolvedUserID", user.ID).
+		Str("resolvedEmail", user.EmailAddress).
+		Msg("user service lookup by email resolved")
 	return user, nil
 }
 
@@ -158,18 +167,24 @@ func (s userService) CreateUserFromMCP(ctx context.Context, email, username stri
 	if err := s.TestName(ctx, username); err != nil {
 		return nil, err
 	}
+	normalizedEmail := strings.ToLower(strings.TrimSpace(email))
 	userID := uuid.NewString()
 	newUser := &models.User{
 		ID:               userID,
 		Username:         username,
 		UsernameLower:    strings.ToLower(username),
-		EmailAddress:     strings.ToLower(email),
+		EmailAddress:     normalizedEmail,
 		OnboardingSource: "mcp",
 		FirstLogin:       true,
 		WelcomeEmailSent: false,
 		CreatedDate:      time.Now().UTC(),
 		UpdatedDate:      time.Now().UTC(),
 	}
+	log.Debug().
+		Str("createdUserID", userID).
+		Str("email", normalizedEmail).
+		Str("username", username).
+		Msg("user service creating MCP user")
 	if _, err := s.userCollection.Doc(userID).Create(ctx, newUser); err != nil {
 		return nil, err
 	}
@@ -177,9 +192,22 @@ func (s userService) CreateUserFromMCP(ctx context.Context, email, username stri
 }
 
 func (s userService) CreateUser(ctx context.Context, userID string, userEmail string, user *dtos.CreateUser) (*models.User, error) {
+	normalizedEmail := strings.ToLower(strings.TrimSpace(userEmail))
+	log.Debug().
+		Str("claimUserID", userID).
+		Str("email", normalizedEmail).
+		Str("username", user.Username).
+		Msg("user service creating web user")
+
 	// Email is the identity key: if a user with this address already exists
 	// (e.g., auto-created via MCP), return them instead of creating a duplicate.
-	if existing, err := s.GetUserByEmail(ctx, strings.ToLower(userEmail)); err == nil {
+	if existing, err := s.GetUserByEmail(ctx, normalizedEmail); err == nil {
+		log.Debug().
+			Str("claimUserID", userID).
+			Str("email", normalizedEmail).
+			Str("resolvedUserID", existing.ID).
+			Str("resolvedEmail", existing.EmailAddress).
+			Msg("user service web create resolved existing user by email")
 		return existing, nil
 	}
 
@@ -192,7 +220,7 @@ func (s userService) CreateUser(ctx context.Context, userID string, userEmail st
 		Username:         user.Username,
 		UsernameLower:    strings.ToLower(user.Username),
 		DisplayName:      user.DisplayName,
-		EmailAddress:     strings.ToLower(userEmail),
+		EmailAddress:     normalizedEmail,
 		OnboardingSource: "web",
 		CreatedDate:      time.Now().UTC(),
 		UpdatedDate:      time.Now().UTC(),

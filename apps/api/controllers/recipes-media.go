@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"4ks/apps/api/dtos"
 	recipeService "4ks/apps/api/services/recipe"
+	userService "4ks/apps/api/services/user"
 	"4ks/apps/api/utils"
 
 	"github.com/rs/xid"
@@ -43,7 +45,29 @@ func getMediaContentType(ext string) (string, error) {
 // @Security 		ApiKeyAuth
 func (c *recipeController) CreateRecipeMedia(ctx *gin.Context) {
 	recipeID := ctx.Param("id")
-	userID := ctx.GetString("id")
+
+	// The JWT claim ID (https://4ks.io/id) may not match the Firestore document ID
+	// for users whose claim was issued before or after account creation. Resolve the
+	// real Firestore user ID using the same ID→email fallback as GetAuthenticatedUser.
+	claimUserID := ctx.GetString("id")
+	email := strings.ToLower(ctx.GetString("email"))
+	resolvedUser, err := c.userService.GetUserByID(ctx, claimUserID)
+	if err != nil {
+		if err != userService.ErrUserNotFound || email == "" {
+			ctx.AbortWithError(http.StatusUnauthorized, err)
+			return
+		}
+		resolvedUser, err = c.userService.GetUserByEmail(ctx, email)
+		if err != nil {
+			ctx.AbortWithError(http.StatusUnauthorized, err)
+			return
+		}
+	}
+	if resolvedUser == nil {
+		ctx.AbortWithError(http.StatusUnauthorized, userService.ErrUserNotFound)
+		return
+	}
+	userID := resolvedUser.ID
 
 	payload := dtos.CreateRecipeMedia{}
 	if err := ctx.BindJSON(&payload); err != nil {
