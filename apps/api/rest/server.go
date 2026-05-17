@@ -10,6 +10,8 @@ import (
 
 	"4ks/apps/api/app"
 	controllers "4ks/apps/api/controllers"
+
+	// _ import for API docs generation; see docs.go for details.
 	_ "4ks/apps/api/docs"
 	middleware "4ks/apps/api/middleware"
 	utils "4ks/apps/api/utils"
