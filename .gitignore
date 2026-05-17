@@ -59,8 +59,8 @@ local.env.yaml
 *.auto.tfvars
 **/secrets/*
 !dev/secrets/
-!dev/secrets/.gitkeep
 !dev/secrets/local.env.example
+!dev/secrets/README.md
 **/*service-account*.json
 **/*google-app-creds*.json
 **/*-creds.json
@@ -68,6 +68,7 @@ dev/apps/nginx/ssl/out/*.key
 dev/apps/nginx/ssl/out/*.pem
 dev/deploy/*secret*.yaml
 dev/deploy/*-secret.yaml
+dev/config/tunnel-url
 
 ignore
 .agent/

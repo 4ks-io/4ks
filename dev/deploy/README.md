@@ -21,3 +21,8 @@ Auth0 local tenant setup is also required. The Auth0 application used by
 - Allowed Logout URLs: `https://local.4ks.io`
 
 Generated secret manifests matching `dev/deploy/*secret*.yaml` are ignored.
+
+## Optional ngrok Tunnel
+
+See `dev/config/README.md` for the file-based tunnel configuration used by
+Tilt.

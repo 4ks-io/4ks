@@ -19,10 +19,29 @@ start:
 		printf "Run 'make up' to create/start the local Kubernetes infrastructure, then run 'make start' again.\n"; \
 		exit 1; \
 	fi; \
+	if [ -s dev/config/tunnel-url ]; then \
+		tunnel_config="$$(head -n 1 dev/config/tunnel-url)"; \
+		printf "Tunnel config detected: dev/config/tunnel-url = %s\n" "$$tunnel_config"; \
+		printf "Tilt will create Kubernetes ConfigMap dev-tunnel-config and local resource ngrok.\n"; \
+		printf "ngrok is a Tilt local resource, not a Kubernetes pod or service.\n"; \
+	else \
+		printf "No tunnel config detected at dev/config/tunnel-url; ngrok will be skipped.\n"; \
+	fi; \
 	if command -v curl >/dev/null 2>&1 && curl -fsS "http://127.0.0.1:$(TILT_PORT)/" >/dev/null 2>&1; then \
 		printf "Tilt is already running on http://localhost:$(TILT_PORT)/; attaching to logs.\n"; \
 		printf "Current Tilt resource status:\n"; \
 		tilt get uiresources || true; \
+		printf "Current tunnel resource status:\n"; \
+		if tilt get uiresources ngrok --ignore-not-found --no-headers 2>/dev/null | grep -q '^ngrok'; then \
+			tilt get uiresources ngrok --no-headers || true; \
+		else \
+			printf "Tilt UI resource 'ngrok' is not currently registered.\n"; \
+		fi; \
+		if kubectl get configmap dev-tunnel-config >/dev/null 2>&1; then \
+			kubectl get configmap dev-tunnel-config; \
+		else \
+			printf "Kubernetes ConfigMap dev-tunnel-config is not currently present.\n"; \
+		fi; \
 		printf "If the session is stale or a pod is stuck, run 'make restart'.\n"; \
 		tilt logs -f; \
 	else \

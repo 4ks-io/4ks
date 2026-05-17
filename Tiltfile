@@ -5,10 +5,60 @@ version_settings(constraint='>=0.22.2')
 # https://docs.tilt.dev/api.html#modules.config.main_path
 tiltfile_path = config.main_path
 
+tunnel_config_path = 'dev/config/tunnel-url'
+watch_file(tunnel_config_path)
+
+tunnel_config = str(local(
+    'if [ -s {path} ]; then head -n 1 {path}; fi'.format(path=tunnel_config_path),
+    quiet=True,
+)).strip()
+
+tunnel_enabled = tunnel_config != ''
+if tunnel_config.startswith('https://'):
+    tunnel_config = tunnel_config[len('https://'):]
+if tunnel_config.startswith('http://'):
+    fail('dev/config/tunnel-url must use an HTTPS ngrok URL')
+tunnel_config = tunnel_config.split('/')[0]
+tunnel_parts = tunnel_config.split(':')
+tunnel_url = tunnel_parts[0] if tunnel_enabled else ''
+tunnel_target = tunnel_parts[1] if tunnel_enabled and len(tunnel_parts) > 1 else '443'
+
+local_mcp_base_url = 'https://local.4ks.io/mcp'
+tunnel_mcp_base_url = 'https://{}/mcp'.format(tunnel_url)
+mcp_base_url = tunnel_mcp_base_url if tunnel_enabled else local_mcp_base_url
+
 # https://github.com/bazelbuild/starlark/blob/master/spec.md#print
 print("""
 Starting 4ks Services
 """.format(tiltfile=tiltfile_path))
+
+if tunnel_enabled:
+    print("""
+Tunnel config: enabled
+  source: {tunnel_config_path}
+  url: {tunnel_url}
+  target: {tunnel_target}
+  mcp_base_url: {mcp_base_url}
+  k8s_configmap: dev-tunnel-config
+  tilt_resource: ngrok (local_resource, not a Kubernetes pod)
+  command: ngrok http --url={tunnel_url} {tunnel_target}
+""".format(
+        tunnel_config_path=tunnel_config_path,
+        tunnel_url=tunnel_url,
+        tunnel_target=tunnel_target,
+        mcp_base_url=mcp_base_url,
+    ))
+else:
+    print("""
+Tunnel config: disabled
+  source: {tunnel_config_path}
+  reason: file missing or empty
+  mcp_base_url: {mcp_base_url}
+  ngrok: skipped
+""".format(
+        tunnel_config_path=tunnel_config_path,
+        mcp_base_url=mcp_base_url,
+    ))
 
 go_test_ignores = [
     '**/*_test.go',
@@ -24,8 +74,31 @@ ts_unit_test_ignores = [
 ]
 
 # RESOURCES
+api_yaml = str(read_file('dev/deploy/api.yaml'))
+if tunnel_enabled:
+    api_yaml = api_yaml.replace(
+        '''- name: MCP_BASE_URL
+              value: https://local.4ks.io/mcp
+            - name: MCP_AUDIENCE
+              value: https://local.4ks.io/mcp''',
+        '''- name: MCP_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: dev-tunnel-config
+                  key: MCP_BASE_URL
+            - name: MCP_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: dev-tunnel-config
+                  key: MCP_AUDIENCE''',
+    )
+else:
+    api_yaml = api_yaml.replace(
+        'https://flowing-properly-moth.ngrok-free.app/mcp',
+        mcp_base_url,
+    )
+
 k8s_yaml([
-    'dev/deploy/api.yaml',
     'dev/deploy/web.yaml',
     'dev/deploy/fetcher.yaml',
     'dev/deploy/firestore.yaml',
@@ -33,6 +106,30 @@ k8s_yaml([
     'dev/deploy/pubsub.yaml',
     # 'dev/deploy/jaeger.yaml'
 ])
+k8s_yaml(blob(api_yaml))
+
+if tunnel_enabled:
+    k8s_yaml(blob('''
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-tunnel-config
+data:
+  TUNNEL_URL: "{tunnel_url}"
+  TUNNEL_TARGET: "{tunnel_target}"
+  MCP_BASE_URL: "{mcp_base_url}"
+  MCP_AUDIENCE: "{mcp_base_url}"
+'''.format(
+        tunnel_url=tunnel_url,
+        tunnel_target=tunnel_target,
+        mcp_base_url=mcp_base_url,
+    )))
+
+    local_resource(
+        name='ngrok',
+        serve_cmd='ngrok http --url={} {}'.format(tunnel_url, tunnel_target),
+        labels=['networking', 'mcp'],
+    )
 
 local_resource(
     name='bootstrap (secrets)',

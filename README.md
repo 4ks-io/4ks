@@ -40,6 +40,9 @@
    `make up`
 1. Start the Tilt-managed application resources on the existing cluster: \
    `make start`
+1. Optionally expose the local nginx origin through ngrok for MCP or external
+   callback testing by creating `dev/config/tunnel-url`; see
+   `dev/config/README.md`.
 
 ## Local lifecycle
 
@@ -55,6 +58,11 @@
   attaches by streaming `tilt logs -f` instead of trying to launch a second Tilt
   server. It prints the current Tilt resource status before attaching so failed
   pods are visible.
+- If `dev/config/tunnel-url` exists, Tilt starts an optional ngrok tunnel to the
+  configured local target and renders tunnel values into Kubernetes config. This
+  assumes local nginx is already running through `docker compose up -d`. A
+  reserved ngrok domain is preferred because MCP, Auth0, and other external
+  integrations may need stable callback or audience URLs.
 - `make stop` stops only the Tilt-managed application resources, then
   terminates the running Tilt process. It leaves the kind cluster, registry
   container, and persistent volumes intact.

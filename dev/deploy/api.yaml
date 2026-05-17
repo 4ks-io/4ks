@@ -112,9 +112,9 @@ spec:
             - name: MCP_PORT
               value: '4444'
             - name: MCP_BASE_URL
-              value: https://flowing-properly-moth.ngrok-free.app/mcp
+              value: https://local.4ks.io/mcp
             - name: MCP_AUDIENCE
-              value: https://flowing-properly-moth.ngrok-free.app/mcp
+              value: https://local.4ks.io/mcp
           ports:
             - containerPort: 5000
             - containerPort: 4444
