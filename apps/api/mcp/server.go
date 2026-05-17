@@ -1,3 +1,4 @@
+// Package mcp provides the MCP server implementation for the 4ks application.
 package mcp
 
 import (

@@ -13,7 +13,7 @@ COPY ./apps/api ./apps/api
 COPY ./libs/go ./libs/go
 
 RUN go mod tidy
-RUN go build ./apps/api/main.go
+RUN go build -o main ./apps/api
 
 USER appuser
 CMD ["/code/main"]

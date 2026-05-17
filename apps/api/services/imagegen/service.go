@@ -1,3 +1,4 @@
+// Package imagegenvc provides a Service for generating images from text prompts using the OpenAI Images API.
 package imagegenvc
 
 import (

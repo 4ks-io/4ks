@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY ./apps/api ./apps/api
 COPY ./libs/go ./libs/go
-RUN CGO_ENABLED=0 go build -o 4ksapi ./apps/api/main.go
+RUN CGO_ENABLED=0 go build -o 4ksapi ./apps/api
 
 ARG VERSION=0.0.0
 ENV VERSION=$VERSION

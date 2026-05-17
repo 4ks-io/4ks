@@ -1,3 +1,4 @@
+// Package rest provides the REST server implementation for the 4ks application.
 package rest
 
 import (

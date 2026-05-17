@@ -178,7 +178,7 @@ func (s recipeService) ReserveRecipeAIImageMedia(
 ) (*models.RecipeMedia, error) {
 	var reserved *models.RecipeMedia
 
-	err := s.fire.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+	err := s.fire.RunTransaction(ctx, func(_ context.Context, tx *firestore.Transaction) error {
 		recipeDocRef := s.recipeCollection.Doc(recipeID)
 		recipeDoc, err := tx.Get(recipeDocRef)
 		if err != nil {
