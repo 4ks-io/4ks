@@ -4,5 +4,27 @@
     "activityBar.foreground": "#000000",
     "activityBarBadge.background": "#000000",
     "activityBarBadge.foreground": "#ffffff",
-  }
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/PACKAGE_JSON/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true,
+    "**/.tsbuildinfo": true,
+    "**/vendor/**": true
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "PACKAGE_JSON": true,
+    "**/.next": true,
+    "**/dist": true
+  },
+  "search.exclude": {
+    "**/node_modules/**": true,
+    "**/PACKAGE_JSON/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true,
+    "**/pnpm-lock.yaml": true
+  },
+  "js/ts.preferences.includePackageJsonAutoImports": "off"
 }

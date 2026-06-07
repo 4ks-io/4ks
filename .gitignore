@@ -45,6 +45,7 @@ Thumbs.db
 terraform.tfvars
 terraform.*.tfvars
 PACKAGE_JSON/
+.PACKAGE_JSON.stamp
 
 re.sh
 

@@ -52,6 +52,7 @@ func StructuredLogger(logger *zerolog.Logger) gin.HandlerFunc {
 		param.StatusCode = c.Writer.Status()
 		param.ErrorMessage = c.Errors.ByType(gin.ErrorTypePrivate).String()
 		param.BodySize = c.Writer.Size()
+		handler := c.HandlerName()
 		if raw != "" {
 			path = path + "?" + raw
 		}
@@ -68,6 +69,7 @@ func StructuredLogger(logger *zerolog.Logger) gin.HandlerFunc {
 		logEvent.Str("ip", param.ClientIP).
 			Str("method", param.Method).
 			Str("path", param.Path).
+			Str("handler", handler).
 			Int("statusCode", param.StatusCode).
 			Int("bodySize", param.BodySize).
 			Str("latency", param.Latency.String()).

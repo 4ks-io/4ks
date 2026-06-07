@@ -7,12 +7,17 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
+
+func structuredLoggerTestHandler(c *gin.Context) {
+	c.String(http.StatusCreated, "ok")
+}
 
 func TestCasbinAuthorizationHelpers(t *testing.T) {
 	t.Parallel()
@@ -124,9 +129,7 @@ func TestErrorAndLoggingMiddleware(t *testing.T) {
 		logger := zerolog.New(&buf)
 		router := gin.New()
 		router.Use(StructuredLogger(&logger))
-		router.GET("/api/example", func(c *gin.Context) {
-			c.String(http.StatusCreated, "ok")
-		})
+		router.GET("/api/example", structuredLoggerTestHandler)
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/api/example?q=1", nil)
@@ -142,6 +145,10 @@ func TestErrorAndLoggingMiddleware(t *testing.T) {
 		}
 		if payload["path"] != "/api/example?q=1" || payload["method"] != http.MethodGet {
 			t.Fatalf("unexpected log payload: %+v", payload)
+		}
+		handler, ok := payload["handler"].(string)
+		if !ok || !strings.Contains(handler, "structuredLoggerTestHandler") {
+			t.Fatalf("expected handler name in log payload, got %+v", payload)
 		}
 	})
 

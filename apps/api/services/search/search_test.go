@@ -3,6 +3,7 @@ package search
 import (
 	"4ks/apps/api/dtos"
 	"4ks/libs/go/models"
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/typesense/typesense-go/typesense"
 )
 
@@ -134,6 +137,40 @@ func TestCreateSearchRecipeCollection(t *testing.T) {
 	}
 	if !strings.Contains(bodyText, `"name":"recipes"`) || !strings.Contains(bodyText, `"imageUrl"`) {
 		t.Fatalf("unexpected schema body: %s", bodyText)
+	}
+}
+
+func TestCreateSearchRecipeCollectionDoesNotLogFailureOnSuccess(t *testing.T) {
+	var logs bytes.Buffer
+	originalLogger := log.Logger
+	log.Logger = zerolog.New(&logs)
+	t.Cleanup(func() {
+		log.Logger = originalLogger
+	})
+
+	service := newTestSearchService(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"name":"recipes","num_documents":0,"fields":[]}`))
+	})
+
+	if err := service.CreateSearchRecipeCollection(); err != nil {
+		t.Fatalf("CreateSearchRecipeCollection returned error: %v", err)
+	}
+	if strings.Contains(logs.String(), "failed to create search collection") {
+		t.Fatalf("unexpected failure log on success: %s", logs.String())
+	}
+}
+
+func TestCreateSearchRecipeCollectionIsIdempotentWhenCollectionExists(t *testing.T) {
+	service := newTestSearchService(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"message":"A collection with name recipes already exists."}`))
+	})
+
+	if err := service.CreateSearchRecipeCollection(); err != nil {
+		t.Fatalf("CreateSearchRecipeCollection should ignore existing collection conflicts, got: %v", err)
 	}
 }
 

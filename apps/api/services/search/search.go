@@ -6,7 +6,9 @@ import (
 	"4ks/libs/go/models"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/rs/zerolog/log"
 	"github.com/typesense/typesense-go/typesense"
@@ -156,8 +158,12 @@ func (s searchService) CreateSearchRecipeCollection() error {
 	}
 
 	_, err := s.client.Collections().Create(context.Background(), schema)
-	log.Error().Err(err).Msg("failed to create search collection")
 	if err != nil {
+		var httpErr *typesense.HTTPError
+		if errors.As(err, &httpErr) && httpErr.Status == http.StatusConflict {
+			return nil
+		}
+		log.Error().Err(err).Msg("failed to create search collection")
 		return err
 	}
 
