@@ -48,7 +48,7 @@ spec:
             claimName: typesense-pvc
       containers:
         - name: typesense
-          image: typesense/typesense:0.25.0
+          image: typesense/typesense:30.2
           volumeMounts:
             - name: typesense-pv
               mountPath: /data
