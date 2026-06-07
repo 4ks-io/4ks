@@ -61,7 +61,7 @@ func New(cfg *utils.RuntimeConfig, svc app.Services, deps Deps) (*Server, error)
 	}
 	router.Use(middleware.ErrorHandler)
 	router.Use(middleware.CorsMiddleware(cfg.HTTP.CORS))
-	if sysFlags.Debug {
+	if sysFlags.DebugVerbose {
 		router.Use(middleware.DefaultStructuredLogger())
 	}
 

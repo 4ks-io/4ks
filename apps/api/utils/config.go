@@ -17,7 +17,7 @@ import (
 
 // SystemFlags is a struct for system flags
 type SystemFlags struct {
-	Debug         bool
+	DebugVerbose  bool
 	Development   bool
 	JaegerEnabled bool
 }
@@ -216,7 +216,7 @@ type rawRuntimeConfig struct {
 // SystemFlags returns the legacy flags struct expected by existing services.
 func (cfg RuntimeConfig) SystemFlags() SystemFlags {
 	return SystemFlags{
-		Debug:         strings.EqualFold(cfg.System.GinMode, "debug"),
+		DebugVerbose:  strings.EqualFold(cfg.System.GinMode, "debug"),
 		Development:   cfg.System.Development,
 		JaegerEnabled: cfg.Tracing.Enabled,
 	}

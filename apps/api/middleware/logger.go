@@ -4,6 +4,7 @@ package middleware
 // https://learninggolang.com/it5-gin-structured-logging.html
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -52,7 +53,13 @@ func StructuredLogger(logger *zerolog.Logger) gin.HandlerFunc {
 		param.StatusCode = c.Writer.Status()
 		param.ErrorMessage = c.Errors.ByType(gin.ErrorTypePrivate).String()
 		param.BodySize = c.Writer.Size()
+		// split handler at `/` and only keep final part (the function name)
 		handler := c.HandlerName()
+		hparts := strings.Split(handler, "/")
+		if idx := len(hparts) - 1; idx >= 0 {
+			handler = hparts[idx]
+		}
+
 		if raw != "" {
 			path = path + "?" + raw
 		}
@@ -66,14 +73,19 @@ func StructuredLogger(logger *zerolog.Logger) gin.HandlerFunc {
 			logEvent = logger.Info()
 		}
 
+		authType := c.GetString("authType")
+		if authType == "" {
+			authType = "none"
+		}
+
 		logEvent.Str("ip", param.ClientIP).
 			Str("method", param.Method).
 			Str("path", param.Path).
 			Str("handler", handler).
 			Int("statusCode", param.StatusCode).
 			Int("bodySize", param.BodySize).
-			Str("latency", param.Latency.String()).
-			Str("authType", c.GetString("authType")).
+			Int64("latency", param.Latency.Milliseconds()).
+			Str("authType", authType).
 			Str("patPreview", c.GetString("patPreview")).
 			Msg(param.ErrorMessage)
 	}

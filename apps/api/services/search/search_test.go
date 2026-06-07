@@ -148,7 +148,7 @@ func TestCreateSearchRecipeCollectionDoesNotLogFailureOnSuccess(t *testing.T) {
 		log.Logger = originalLogger
 	})
 
-	service := newTestSearchService(t, func(w http.ResponseWriter, r *http.Request) {
+	service := newTestSearchService(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = w.Write([]byte(`{"name":"recipes","num_documents":0,"fields":[]}`))
@@ -163,7 +163,7 @@ func TestCreateSearchRecipeCollectionDoesNotLogFailureOnSuccess(t *testing.T) {
 }
 
 func TestCreateSearchRecipeCollectionIsIdempotentWhenCollectionExists(t *testing.T) {
-	service := newTestSearchService(t, func(w http.ResponseWriter, r *http.Request) {
+	service := newTestSearchService(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
 		_, _ = w.Write([]byte(`{"message":"A collection with name recipes already exists."}`))

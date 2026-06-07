@@ -221,7 +221,7 @@ func TestErrorAndLoggingMiddleware(t *testing.T) {
 func TestCustomClaimsValidate(t *testing.T) {
 	t.Parallel()
 
-	if err := (CustomClaims{}).Validate(nil); err != nil {
+	if err := (CustomClaims{}).Validate(t.Context()); err != nil {
 		t.Fatalf("expected Validate to return nil, got %v", err)
 	}
 }
