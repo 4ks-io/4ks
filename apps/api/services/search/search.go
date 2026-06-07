@@ -11,8 +11,9 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
-	"github.com/typesense/typesense-go/typesense"
-	"github.com/typesense/typesense-go/typesense/api"
+	"github.com/typesense/typesense-go/v3/typesense"
+	"github.com/typesense/typesense-go/v3/typesense/api"
+	"github.com/typesense/typesense-go/v3/typesense/api/pointer"
 )
 
 // Service is the interface for the search service
@@ -66,7 +67,7 @@ func (s searchService) UpsertSearchRecipeDocument(r *models.Recipe) error {
 		ImageURL:    banner,
 	}
 
-	_, err := s.client.Collection("recipes").Documents().Upsert(context.Background(), document)
+	_, err := s.client.Collection("recipes").Documents().Upsert(context.Background(), document, &api.DocumentIndexParameters{})
 	if err != nil {
 		return err
 	}
@@ -93,8 +94,8 @@ func (s searchService) SearchRecipesByAuthor(query string, author string, perPag
 
 	filterBy := fmt.Sprintf("author:=%s", author)
 	params := &api.SearchCollectionParams{
-		Q:        query,
-		QueryBy:  "name,ingredients",
+		Q:        pointer.String(query),
+		QueryBy:  pointer.String("name,ingredients"),
 		FilterBy: &filterBy,
 		PerPage:  &perPage,
 	}

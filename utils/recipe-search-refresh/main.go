@@ -11,7 +11,8 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/rs/zerolog/log"
-	"github.com/typesense/typesense-go/typesense"
+	"github.com/typesense/typesense-go/v3/typesense"
+	"github.com/typesense/typesense-go/v3/typesense/api"
 	"gopkg.in/yaml.v2"
 )
 
@@ -97,7 +98,7 @@ Batch:
 			log.Info().Str("id", document.ID).Str("title", r.CurrentRevision.Name).Msg("upsert")
 
 			if !cfg.DryRun {
-				_, err = ts.Collection("recipes").Documents().Upsert(context.Background(), document)
+				_, err = ts.Collection("recipes").Documents().Upsert(context.Background(), document, &api.DocumentIndexParameters{})
 				if err != nil {
 					log.Error().Err(err).Caller().Msg("upsert failed")
 				}

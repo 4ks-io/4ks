@@ -14,7 +14,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/typesense/typesense-go/typesense"
+	"github.com/typesense/typesense-go/v3/typesense"
 )
 
 func newTestSearchService(t *testing.T, handler func(http.ResponseWriter, *http.Request)) Service {
